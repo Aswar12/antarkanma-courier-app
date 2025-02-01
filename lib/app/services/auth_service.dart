@@ -38,7 +38,6 @@ class AuthService extends GetxService {
     }
   }
 
-  // Rest of the methods remain unchanged...
   Future<bool> verifyToken(String token) async {
     try {
       final response = await _authProvider.refreshToken(token);
@@ -98,6 +97,17 @@ class AuthService extends GetxService {
       final token = response.data['data']['access_token'];
 
       if (token != null) {
+        // Check if user is a courier
+        if (userData['role'] != 'COURIER') {
+          if (!isAutoLogin) {
+            showCustomSnackbar(
+                title: 'Akses Ditolak',
+                message: 'Aplikasi ini hanya untuk kurir.',
+                isError: true);
+          }
+          return false;
+        }
+
         await _storageService.saveToken(token);
         await _storageService.saveUser(userData);
 
@@ -109,7 +119,7 @@ class AuthService extends GetxService {
         }
 
         currentUser.value = UserModel.fromJson(userData);
-        print("User logged in successfully: ${currentUser.value}"); // Debug log
+        print("Courier logged in successfully: ${currentUser.value}");
         isLoggedIn.value = true;
 
         // Register FCM token after successful login
@@ -117,7 +127,7 @@ class AuthService extends GetxService {
 
         // Only redirect and show snackbar if not auto-login
         if (!isAutoLogin) {
-          _redirectBasedOnRole();
+          Get.offAllNamed(Routes.courierMainPage);
           showCustomSnackbar(title: 'Sukses', message: 'Login berhasil');
         }
         return true;
@@ -154,23 +164,16 @@ class AuthService extends GetxService {
         'phone_number': phoneNumber,
         'password': password,
         'password_confirmation': confirmPassword,
+        'role': 'COURIER', // Force role to be COURIER
       };
 
       final response = await _authProvider.register(userData);
       if (response.statusCode == 200) {
-        final userData = response.data['data']['user'];
-        final token = response.data['data']['access_token'];
-        if (token != null && userData != null) {
-          await _storageService.saveToken(token);
-          await _storageService.saveUser(userData);
-          currentUser.value = UserModel.fromJson(userData);
-          isLoggedIn.value = true;
-          _redirectBasedOnRole();
-          return true;
-        }
         showCustomSnackbar(
-            title: 'Error', message: 'Data login tidak valid.', isError: true);
-        return false;
+            title: 'Registrasi Berhasil',
+            message: 'Silakan login untuk melanjutkan.');
+        Get.offAllNamed(Routes.login);
+        return true;
       }
 
       showCustomSnackbar(
@@ -187,24 +190,6 @@ class AuthService extends GetxService {
     }
   }
 
-  void _redirectBasedOnRole() {
-    if (currentUser.value == null) return;
-
-    switch (currentUser.value!.role) {
-      case 'USER':
-        Get.offAllNamed(Routes.userMainPage);
-        break;
-      case 'MERCHANT':
-        Get.offAllNamed(Routes.merchantMainPage);
-        break;
-      case 'COURIER':
-        Get.offAllNamed(Routes.courierMainPage);
-        break;
-      default:
-        Get.offAllNamed(Routes.login);
-    }
-  }
-
   Future<bool> updateProfilePhoto(File photo) async {
     try {
       final token = _storageService.getToken();
@@ -214,7 +199,6 @@ class AuthService extends GetxService {
         return false;
       }
 
-      // Check file size before creating FormData (2MB limit)
       final fileSize = await photo.length();
       if (fileSize > 2 * 1024 * 1024) {
         showCustomSnackbar(
@@ -224,7 +208,6 @@ class AuthService extends GetxService {
         return false;
       }
 
-      // Check file type
       final extension = photo.path.split('.').last.toLowerCase();
       if (!['jpg', 'jpeg', 'png'].contains(extension)) {
         showCustomSnackbar(
@@ -234,7 +217,6 @@ class AuthService extends GetxService {
         return false;
       }
 
-      // Create form data with the correct field name
       final formData = FormData.fromMap({
         'photo': await MultipartFile.fromFile(
           photo.path,
@@ -242,35 +224,26 @@ class AuthService extends GetxService {
         ),
       });
 
-      try {
-        final response =
-            await _authProvider.updateProfilePhoto(token, formData);
+      final response = await _authProvider.updateProfilePhoto(token, formData);
 
-        if (response.statusCode == 200) {
-          // Get fresh user data
-          final userResponse = await _authProvider.getProfile(token);
-          if (userResponse.statusCode == 200) {
-            final userData = userResponse.data['data'];
-            await _storageService.saveUser(userData);
-            currentUser.value = UserModel.fromJson(userData);
+      if (response.statusCode == 200) {
+        final userResponse = await _authProvider.getProfile(token);
+        if (userResponse.statusCode == 200) {
+          final userData = userResponse.data['data'];
+          await _storageService.saveUser(userData);
+          currentUser.value = UserModel.fromJson(userData);
 
-            showCustomSnackbar(
-                title: 'Sukses', message: 'Foto profil berhasil diperbarui');
-            return true;
-          }
+          showCustomSnackbar(
+              title: 'Sukses', message: 'Foto profil berhasil diperbarui');
+          return true;
         }
-
-        final errorMessage =
-            response.data['message'] ?? 'Gagal memperbarui foto profil';
-        print('Upload failed: $errorMessage');
-        print('Response data: ${response.data}');
-        showCustomSnackbar(
-            title: 'Error', message: errorMessage, isError: true);
-        return false;
-      } catch (e) {
-        print('Error during API call: $e');
-        throw e;
       }
+
+      showCustomSnackbar(
+          title: 'Error',
+          message: response.data['message'] ?? 'Gagal memperbarui foto profil',
+          isError: true);
+      return false;
     } catch (e) {
       print('Error in updateProfilePhoto: $e');
       String errorMessage = 'Gagal memperbarui foto profil';
@@ -297,7 +270,6 @@ class AuthService extends GetxService {
         return false;
       }
 
-      // Validate input
       if (name.isEmpty) {
         showCustomSnackbar(
             title: 'Error', message: 'Nama tidak boleh kosong', isError: true);
@@ -330,7 +302,6 @@ class AuthService extends GetxService {
       final response = await _authProvider.updateProfile(token, updateData);
 
       if (response.statusCode == 200) {
-        // Get fresh user data
         final userResponse = await _authProvider.getProfile(token);
         if (userResponse.statusCode == 200) {
           final userData = userResponse.data['data'];
@@ -372,6 +343,17 @@ class AuthService extends GetxService {
       final response = await _authProvider.getProfile(token);
       if (response.statusCode == 200) {
         final userData = response.data['data'];
+        
+        // Verify user is a courier
+        if (userData['role'] != 'COURIER') {
+          showCustomSnackbar(
+              title: 'Akses Ditolak',
+              message: 'Aplikasi ini hanya untuk kurir.',
+              isError: true);
+          await logout();
+          return null;
+        }
+
         await _storageService.saveUser(userData);
         currentUser.value = UserModel.fromJson(userData);
         return currentUser.value;
@@ -452,42 +434,11 @@ class AuthService extends GetxService {
     }
   }
 
-  Future<bool> deleteAccount() async {
-    try {
-      final token = _storageService.getToken();
-      if (token == null) {
-        showCustomSnackbar(
-            title: 'Error', message: 'Token tidak valid', isError: true);
-        return false;
-      }
-
-      final response = await _authProvider.deleteAccount(token);
-      if (response.statusCode == 200) {
-        showCustomSnackbar(title: 'Sukses', message: 'Akun berhasil dihapus');
-        await _clearAuthData(fullClear: true);
-        return true;
-      }
-
-      showCustomSnackbar(
-          title: 'Error',
-          message: response.data['message'] ?? 'Gagal menghapus akun',
-          isError: true);
-      return false;
-    } catch (e) {
-      showCustomSnackbar(
-          title: 'Error',
-          message: 'Gagal menghapus akun: ${e.toString()}',
-          isError: true);
-      return false;
-    }
-  }
-
   Future<void> logout() async {
     try {
       final token = _storageService.getToken();
       if (token != null) {
         await _authProvider.logout(token);
-        // Unregister FCM token before logging out
         await _handleFCMToken(register: false);
       }
     } catch (e) {
@@ -500,7 +451,6 @@ class AuthService extends GetxService {
 
   Future<void> _clearAuthData({bool fullClear = false}) async {
     if (fullClear) {
-      // Clear all data except remember me settings if enabled
       if (_storageService.getRememberMe()) {
         final credentials = _storageService.getSavedCredentials();
         await _storageService.clearAll();
@@ -516,11 +466,9 @@ class AuthService extends GetxService {
       await _storageService.clearAuth();
     }
 
-    // Clear observable states
     isLoggedIn.value = false;
     currentUser.value = null;
 
-    // Clear any cached data
     await _storageService.clearOrders();
     await _storageService.clearLocationData();
   }
@@ -542,9 +490,7 @@ class AuthService extends GetxService {
   String get userEmail => currentUser.value?.email ?? '';
   String get userPhone => currentUser.value?.phoneNumber ?? '';
   String get userRole => currentUser.value?.role ?? '';
-  bool get isMerchant => userRole == 'MERCHANT';
   bool get isCourier => userRole == 'COURIER';
-  bool get isUser => userRole == 'USER';
   int? get userId => currentUser.value?.id;
   String? get userProfilePhotoUrl => currentUser.value?.profilePhotoUrl;
   String? get userProfilePhotoPath => currentUser.value?.profilePhotoPath;

@@ -1,16 +1,12 @@
 import 'package:get/get.dart';
 import 'package:flutter/foundation.dart';
 import '../controllers/auth_controller.dart';
-import '../controllers/user_controller.dart';
-import '../controllers/user_main_controller.dart';
 import '../modules/splash/controllers/splash_controller.dart';
 import '../services/auth_service.dart';
-import '../services/product_service.dart';
 import '../services/transaction_service.dart';
-import '../services/category_service.dart';
-import '../services/merchant_service.dart';
 import '../services/notification_service.dart';
 import '../services/fcm_token_service.dart';
+import '../services/courier_service.dart';
 
 class InitialBinding extends Bindings {
   @override
@@ -24,20 +20,14 @@ class InitialBinding extends Bindings {
     debugPrint('Initializing TransactionService...');
     Get.put(TransactionService(), permanent: true);
 
+    debugPrint('Initializing CourierService...');
+    Get.put(CourierService(), permanent: true);
+
     debugPrint('Initializing FCMTokenService...');
     Get.putAsync(() => FCMTokenService().init(), permanent: true);
 
     debugPrint('Initializing NotificationService...');
     Get.putAsync(() => NotificationService().init(), permanent: true);
-
-    debugPrint('Initializing CategoryService...');
-    Get.put(CategoryService(), permanent: true);
-
-    debugPrint('Initializing ProductService...');
-    Get.put(ProductService(), permanent: true);
-
-    debugPrint('Initializing MerchantService...');
-    Get.put(MerchantService(), permanent: true);
 
     // Controllers
     debugPrint('Initializing SplashController...');
@@ -45,15 +35,6 @@ class InitialBinding extends Bindings {
 
     debugPrint('Initializing AuthController...');
     Get.put(AuthController(), permanent: true);
-
-    debugPrint('Initializing UserController...');
-    Get.lazyPut(() => UserController());
-
-    debugPrint('Initializing UserMainController...');
-    Get.put(UserMainController(), permanent: true);
-
-    // Note: HomePageController is now initialized by UserMainController
-    // only after successful authentication as a regular user
 
     debugPrint('Dependencies initialization complete');
   }

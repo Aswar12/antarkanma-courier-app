@@ -1,11 +1,38 @@
 import 'package:antarkanma/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/courier_controller.dart';
-import 'courier_order_detail_page.dart';
+import 'package:antarkanma/app/controllers/courier_controller.dart';
+import 'package:antarkanma/app/modules/courier/views/courier_order_detail_page.dart';
 
 class CourierAvailableOrdersPage extends GetView<CourierController> {
-  const CourierAvailableOrdersPage({Key? key}) : super(key: key);
+  const CourierAvailableOrdersPage({super.key});
+
+  Map<String, dynamic> _convertOrderToMap(order) {
+    final merchantGroups = order.getItemsByMerchant();
+    final merchants = merchantGroups.values.map((items) {
+      final merchant = items.first.merchant;
+      return {
+        'name': merchant.name ?? '',
+        'address': merchant.address ?? '',
+        'items': items.map((item) => {
+          'name': item.name,
+          'quantity': item.quantity,
+        }).toList(),
+      };
+    }).toList();
+
+    return {
+      'orderId': order.id,
+      'earnings': order.formattedTotalAmount,
+      'distance': '0',
+      'estimatedTime': '0',
+      'merchants': merchants,
+      'customerName': order.transaction?.user?.name ?? 'Pelanggan',
+      'customerPhone': order.transaction?.user?.phone ?? '-',
+      'deliveryAddress': order.transaction?.userLocation?.address ?? 'Alamat tidak tersedia',
+      'notes': order.transaction?.note,
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +61,7 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
                       size: 50,
                       color: secondaryTextColor,
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: Dimenssions.height16),
                     Text(
                       'Belum ada orderan tersedia',
                       style: secondaryTextStyle.copyWith(
@@ -47,18 +74,17 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
               )
             : RefreshIndicator(
                 onRefresh: () async {
-                  controller.loadAvailableOrders();
+                  await controller.loadAvailableOrders();
                 },
                 child: ListView.builder(
                   padding: EdgeInsets.all(Dimenssions.width16),
                   itemCount: controller.availableOrders.length,
                   itemBuilder: (context, index) {
                     final order = controller.availableOrders[index];
-                    final List<dynamic> merchants =
-                        (order['merchants'] ?? []) as List<dynamic>;
+                    final merchantGroups = order.getItemsByMerchant();
                     return InkWell(
                       onTap: () =>
-                          Get.to(() => CourierOrderDetailPage(order: order)),
+                          Get.to(CourierOrderDetailPage(order: _convertOrderToMap(order))),
                       child: Container(
                         margin: EdgeInsets.only(bottom: Dimenssions.height16),
                         padding: EdgeInsets.all(Dimenssions.width16),
@@ -80,7 +106,7 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'Order #${order['orderId']}',
+                                  'Order #${order.id}',
                                   style: primaryTextStyle.copyWith(
                                     fontSize: 16,
                                     fontWeight: semiBold,
@@ -96,7 +122,7 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    'Rp ${order['earnings']}',
+                                    order.formattedTotalAmount,
                                     style: priceTextStyle.copyWith(
                                       fontSize: 14,
                                       fontWeight: semiBold,
@@ -116,7 +142,7 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
                                 borderRadius: BorderRadius.circular(4),
                               ),
                               child: Text(
-                                '${merchants.length} Merchant',
+                                '${merchantGroups.length} Merchant',
                                 style: primaryTextStyle.copyWith(
                                   fontSize: 12,
                                   color: primaryColor,
@@ -125,19 +151,20 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
                               ),
                             ),
                             SizedBox(height: Dimenssions.height12),
-                            if (merchants.isNotEmpty) ...[
+                            if (merchantGroups.isNotEmpty) ...[
                               ListView.builder(
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
-                                itemCount: merchants.length,
+                                itemCount: merchantGroups.length,
                                 itemBuilder: (context, merchantIndex) {
-                                  final merchant = merchants[merchantIndex];
+                                  final merchantItems = merchantGroups.values.elementAt(merchantIndex);
+                                  final merchant = merchantItems.first.merchant;
                                   return Padding(
                                     padding: EdgeInsets.only(
                                         bottom: Dimenssions.height8),
                                     child: _buildLocationInfo(
                                       'Pickup ${merchantIndex + 1}',
-                                      merchant['address'] ?? '',
+                                      merchant.address ?? '',
                                       Icons.store,
                                     ),
                                   );
@@ -147,19 +174,19 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
                             ],
                             _buildLocationInfo(
                               'Delivery',
-                              order['deliveryAddress'] ?? '',
+                              order.transaction?.userLocation?.address ?? 'Alamat tidak tersedia',
                               Icons.location_on,
                             ),
                             SizedBox(height: Dimenssions.height12),
                             Row(
                               children: [
                                 _buildInfoChip(
-                                  '${order['distance']} km',
+                                  '0 km',
                                   Icons.directions_bike,
                                 ),
                                 SizedBox(width: Dimenssions.width12),
                                 _buildInfoChip(
-                                  '${order['estimatedTime']} min',
+                                  '0 min',
                                   Icons.access_time,
                                 ),
                               ],
@@ -169,8 +196,7 @@ class CourierAvailableOrdersPage extends GetView<CourierController> {
                               mainAxisAlignment: MainAxisAlignment.end,
                               children: [
                                 TextButton(
-                                  onPressed: () => Get.to(() =>
-                                      CourierOrderDetailPage(order: order)),
+                                  onPressed: () => Get.to(CourierOrderDetailPage(order: _convertOrderToMap(order))),
                                   style: TextButton.styleFrom(
                                     padding: EdgeInsets.symmetric(
                                       horizontal: Dimenssions.width16,

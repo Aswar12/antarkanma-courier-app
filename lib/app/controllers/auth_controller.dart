@@ -6,7 +6,7 @@ import 'package:antarkanma/app/widgets/custom_snackbar.dart';
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
-import 'package:antarkanma/app/modules/merchant/controllers/merchant_controller.dart';
+
 import 'package:antarkanma/app/utils/validators.dart';
 
 class AuthController extends GetxController {
@@ -61,24 +61,20 @@ class AuthController extends GetxController {
         );
       } else {
         String role = _authService.currentUser.value?.role ?? '';
-        switch (role) {
-          case 'USER':
-            print('Navigating to USER main page');
-            Get.offAllNamed(Routes.userMainPage);
-            break;
-          case 'MERCHANT':
-            Get.offAllNamed(Routes.merchantMainPage);
-            break;
-          case 'COURIER':
-            Get.offAllNamed(Routes.courierMainPage);
-            break;
-          default:
-            Get.offAllNamed(Routes.login);
+        if (role == 'COURIER') {
+          Get.offAllNamed(Routes.courierMainPage);
+          showCustomSnackbar(
+            title: 'Login Berhasil',
+            message: 'Selamat datang kembali!',
+          );
+        } else {
+          showCustomSnackbar(
+            title: 'Akses Ditolak',
+            message: 'Aplikasi ini hanya untuk kurir.',
+            isError: true,
+          );
+          await logout();
         }
-        showCustomSnackbar(
-          title: 'Login Berhasil',
-          message: 'Selamat datang kembali!',
-        );
       }
     } finally {
       isLoading.value = false;
@@ -175,18 +171,15 @@ class AuthController extends GetxController {
   }
 
   void navigateToHome(String role) {
-    switch (role) {
-      case 'USER':
-        Get.offAllNamed(Routes.userHome);
-        break;
-      case 'MERCHANT':
-        Get.offAllNamed(Routes.merchantMainPage);
-        break;
-      case 'COURIER':
-        Get.offAllNamed(Routes.courierMainPage);
-        break;
-      default:
-        Get.offAllNamed(Routes.login);
+    if (role == 'COURIER') {
+      Get.offAllNamed(Routes.courierMainPage);
+    } else {
+      Get.offAllNamed(Routes.login);
+      showCustomSnackbar(
+        title: 'Akses Ditolak',
+        message: 'Aplikasi ini hanya untuk kurir.',
+        isError: true,
+      );
     }
   }
 
@@ -226,38 +219,5 @@ class AuthController extends GetxController {
     emailController.dispose();
     phoneNumberController.dispose();
     super.onClose();
-  }
-
-  final RxInt _rating = 0.obs;
-  int get rating => _rating.value;
-
-  void setRating(int value) {
-    if (value >= 1 && value <= 5) {
-      _rating.value = value;
-    }
-  }
-
-  Future<void> submitRating() async {
-    try {
-      if (_rating.value > 0) {
-        showCustomSnackbar(
-          title: 'Sukses',
-          message: 'Terima kasih atas penilaian Anda!',
-        );
-      } else {
-        showCustomSnackbar(
-          title: 'Error',
-          message: 'Silakan berikan rating terlebih dahulu',
-          isError: true,
-        );
-      }
-    } catch (e) {
-      print('Error submitting rating: $e');
-      showCustomSnackbar(
-        title: 'Error',
-        message: 'Gagal mengirim rating',
-        isError: true,
-      );
-    }
   }
 }

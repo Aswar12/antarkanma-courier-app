@@ -1,6 +1,7 @@
 // ignore_for_file: override_on_non_overriding_member
 
 import 'package:get/get.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:antarkanma/app/data/models/user_location_model.dart';
 import 'package:antarkanma/app/data/providers/user_location_provider.dart';
 import 'package:antarkanma/app/services/auth_service.dart';
@@ -26,14 +27,47 @@ class UserLocationService extends GetxService {
   static const String _userLocationsKey = 'user_locations';
   static const String _defaultLocationKey = 'default_location';
   static const String _lastSyncKey = 'last_locations_sync';
-  static const Duration _cacheDuration =
-      Duration(hours: 24); // Cache for 24 hours
+  static const Duration _cacheDuration = Duration(hours: 24);
+
+  // Location permission methods
+  Future<LocationPermission> checkPermission() async {
+    bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+    if (!serviceEnabled) {
+      showCustomSnackbar(
+        title: 'Error',
+        message: 'Location services are disabled.',
+        isError: true,
+      );
+      return LocationPermission.denied;
+    }
+
+    LocationPermission permission = await Geolocator.checkPermission();
+    return permission;
+  }
+
+  Future<LocationPermission> requestPermission() async {
+    return await Geolocator.requestPermission();
+  }
+
+  Future<Position?> getCurrentPosition() async {
+    try {
+      return await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+      );
+    } catch (e) {
+      showCustomSnackbar(
+        title: 'Error',
+        message: 'Failed to get current location: ${e.toString()}',
+        isError: true,
+      );
+      return null;
+    }
+  }
 
   @override
   void onInit() {
     super.onInit();
     loadUserLocationsFromLocal();
-    // Only load from backend if cache is expired
     if (_shouldSyncWithBackend()) {
       loadUserLocations();
     }
@@ -75,7 +109,6 @@ class UserLocationService extends GetxService {
         throw Exception('Token tidak valid');
       }
 
-      // If not forcing refresh and we have local data, skip backend call
       if (!forceRefresh &&
           userLocations.isNotEmpty &&
           !_shouldSyncWithBackend()) {
@@ -92,7 +125,6 @@ class UserLocationService extends GetxService {
         updateDefaultLocation();
         saveLocationsToLocal();
 
-        // Update last sync time
         await _storageService.saveInt(
             _lastSyncKey, DateTime.now().millisecondsSinceEpoch);
       } else {
@@ -109,7 +141,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode pencarian lokasi
   Future<List<UserLocationModel>> searchLocations({
     String? keyword,
     String? addressType,
@@ -146,7 +177,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode lokasi terdekat
   Future<List<UserLocationModel>> getNearbyLocations(
       {required double latitude,
       required double longitude,
@@ -176,7 +206,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode validasi alamat
   Future<bool> validateAddress(Map<String, dynamic> addressData) async {
     try {
       final token = _authService.getToken();
@@ -197,7 +226,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode statistik lokasi
   Future<Map<String, dynamic>?> getLocationStatistics() async {
     try {
       final token = _authService.getToken();
@@ -216,7 +244,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode bulk delete
   Future<bool> bulkDeleteLocations(List<int> locationIds) async {
     try {
       final token = _authService.getToken();
@@ -228,7 +255,6 @@ class UserLocationService extends GetxService {
           await _userLocationProvider.bulkDeleteLocations(token, locationIds);
 
       if (response.statusCode == 200) {
-        // Hapus lokasi dari daftar lokal
         userLocations.removeWhere((loc) => locationIds.contains(loc.id));
         saveLocationsToLocal();
         return true;
@@ -243,9 +269,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode lainnya tetap sama seperti sebelumnya...
-
-  // Tambahan metode untuk reset dan pembersihan
   void resetService() {
     userLocations.clear();
     defaultLocation.value = null;
@@ -254,7 +277,6 @@ class UserLocationService extends GetxService {
     clearLocalData();
   }
 
-  // Metode untuk mendapatkan lokasi terakhir
   Future<List<UserLocationModel>> getRecentLocations({int limit = 5}) async {
     try {
       final token = _authService.getToken();
@@ -281,7 +303,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode untuk mendapatkan lokasi berdasarkan tipe alamat
   Future<List<UserLocationModel>> getLocationsByAddressType(
       String addressType) async {
     try {
@@ -309,7 +330,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode untuk menambahkan koordinat ke lokasi
   Future<bool> addLocationCoordinates(
       {required int locationId,
       required double latitude,
@@ -324,7 +344,6 @@ class UserLocationService extends GetxService {
           token, locationId, latitude, longitude);
 
       if (response.statusCode == 200) {
-        // Update lokasi di daftar lokal
         final index = userLocations.indexWhere((loc) => loc.id == locationId);
         if (index != -1) {
           final updatedLocation = userLocations[index]
@@ -344,7 +363,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode untuk mengekspor lokasi pengguna
   Future<bool> exportUserLocations() async {
     try {
       final token = _authService.getToken();
@@ -355,7 +373,6 @@ class UserLocationService extends GetxService {
       final response = await _userLocationProvider.exportUserLocations(token);
 
       if (response.statusCode == 200) {
-        // Proses export, misalnya menyimpan file atau menampilkan dialog
         showCustomSnackbar(
             title: 'Sukses', message: 'Lokasi berhasil diekspor');
         return true;
@@ -370,7 +387,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode untuk memperbarui metode existing
   @override
   Future<bool> addUserLocation(UserLocationModel location) async {
     try {
@@ -383,10 +399,8 @@ class UserLocationService extends GetxService {
       if (response.statusCode == 201 || response.statusCode == 200) {
         final newLocation = UserLocationModel.fromJson(response.data['data']);
 
-        // Tambahkan lokasi baru ke daftar
         userLocations.add(newLocation);
 
-        // Perbarui lokasi default jika perlu
         if (newLocation.isDefault) {
           for (var loc in userLocations) {
             if (loc.id != newLocation.id) loc.isDefault = false;
@@ -408,9 +422,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-  // Metode untuk mendapatkan lokasi berdasarkan kriteria kompleks
-  // Tambahkan metode-metode berikut ke dalam kelas UserLocationService
-
   Future<bool> updateUserLocation(UserLocationModel location) async {
     try {
       final token = _authService.getToken();
@@ -423,13 +434,11 @@ class UserLocationService extends GetxService {
         final updatedLocation =
             UserLocationModel.fromJson(response.data['data']);
 
-        // Temukan dan perbarui lokasi di daftar lokal
         final index =
             userLocations.indexWhere((loc) => loc.id == updatedLocation.id);
         if (index != -1) {
           userLocations[index] = updatedLocation;
 
-          // Perbarui lokasi default jika perlu
           if (updatedLocation.isDefault) {
             for (var loc in userLocations) {
               if (loc.id != updatedLocation.id) loc.isDefault = false;
@@ -461,10 +470,7 @@ class UserLocationService extends GetxService {
           await _userLocationProvider.deleteUserLocation(token, locationId);
 
       if (response.statusCode == 200) {
-        // Hapus lokasi dari daftar lokal
         userLocations.removeWhere((loc) => loc.id == locationId);
-
-        // Perbarui lokasi default
         updateDefaultLocation();
         saveLocationsToLocal();
 
@@ -488,12 +494,10 @@ class UserLocationService extends GetxService {
           await _userLocationProvider.setDefaultLocation(token, locationId);
 
       if (response.statusCode == 200) {
-        // Perbarui status default untuk semua lokasi
         for (var loc in userLocations) {
           loc.isDefault = loc.id == locationId;
         }
 
-        // Update lokasi default
         updateDefaultLocation();
         saveLocationsToLocal();
 
@@ -510,7 +514,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-// Metode untuk mendapatkan lokasi berdasarkan ID
   UserLocationModel? getLocationById(int id) {
     try {
       return userLocations.firstWhere((loc) => loc.id == id);
@@ -519,7 +522,6 @@ class UserLocationService extends GetxService {
     }
   }
 
-// Metode untuk menyinkronkan lokasi
   Future<void> syncLocations({bool forceRefresh = false}) async {
     try {
       await loadUserLocations(forceRefresh: forceRefresh);
@@ -531,12 +533,10 @@ class UserLocationService extends GetxService {
     }
   }
 
-// Metode untuk mengecek apakah ada data lokal
   bool hasLocalData() {
     return userLocations.isNotEmpty;
   }
 
-// Metode untuk membersihkan data lokal
   void clearLocalData() {
     userLocations.clear();
     defaultLocation.value = null;
@@ -547,28 +547,17 @@ class UserLocationService extends GetxService {
   void updateDefaultLocation() {
     UserLocationModel? defaultLoc;
 
-    // Coba temukan lokasi default
     defaultLoc = userLocations.firstWhereOrNull((loc) => loc.isDefault);
 
-    // Jika tidak ada lokasi default, pilih lokasi pertama jika tersedia
     if (defaultLoc == null && userLocations.isNotEmpty) {
       defaultLoc = userLocations.first;
-      // Secara otomatis set lokasi pertama sebagai default
       defaultLoc.isDefault = true;
     }
 
-    // Update lokasi default
-    if (defaultLoc != null) {
-      defaultLocation.value = defaultLoc;
-      _storageService.saveMap(_defaultLocationKey, defaultLoc.toJson());
-    } else {
-      // Jika tidak ada lokasi sama sekali, set default location ke null
-      defaultLocation.value = null;
-      _storageService.remove(_defaultLocationKey);
+    defaultLocation.value = defaultLoc;
+    _storageService.saveMap(_defaultLocationKey, defaultLoc.toJson());
     }
-  }
 
-// Metode untuk menyimpan lokasi ke penyimpanan lokal
   void saveLocationsToLocal() {
     _storageService.saveList(
         _userLocationsKey, userLocations.map((loc) => loc.toJson()).toList());

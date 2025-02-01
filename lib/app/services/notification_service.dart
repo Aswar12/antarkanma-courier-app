@@ -5,8 +5,7 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:antarkanma/theme.dart';
-import 'package:antarkanma/app/modules/merchant/controllers/merchant_order_controller.dart';
-import 'package:antarkanma/app/modules/merchant/controllers/merchant_controller.dart';
+
 import 'package:antarkanma/app/routes/app_pages.dart';
 
 @pragma('vm:entry-point')
@@ -340,7 +339,7 @@ class NotificationService extends GetxService {
     if (orderId != null) {
       try {
         // First navigate to merchant main page
-        await Get.offAllNamed(Routes.merchantMainPage);
+        await Get.offAllNamed(Routes.courierMainPage);
 
         // Add a small delay to ensure the main page is loaded
         await Future.delayed(const Duration(milliseconds: 300));
@@ -358,7 +357,7 @@ class NotificationService extends GetxService {
 
         // Get the order controller and update the view
         try {
-          final orderController = Get.find<MerchantOrderController>();
+          final orderController = Get.find<c>();
           orderController.filterOrders('PENDING');
           await orderController.refreshOrders();
         } catch (e) {

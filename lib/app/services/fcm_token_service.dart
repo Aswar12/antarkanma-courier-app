@@ -45,16 +45,14 @@ class FCMTokenService extends GetxService {
       String? token = await _messaging.getToken();
       print('Initializing FCM token: $token');
 
-      if (token != null) {
-        _currentToken.value = token;
+      _currentToken.value = token;
 
-        // Only register if user is already logged in
-        final user = _authService.currentUser.value;
-        if (user != null) {
-          await registerFCMToken(token);
-        }
+      // Only register if user is already logged in
+      final user = _authService.currentUser.value;
+      if (user != null) {
+        await registerFCMToken(token);
       }
-    } catch (e) {
+        } catch (e) {
       print('Error initializing FCM token: $e');
     }
   }

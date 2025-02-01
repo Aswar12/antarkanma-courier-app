@@ -3,7 +3,7 @@
 import 'package:antarkanma/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import '../controllers/courier_controller.dart';
+import 'package:antarkanma/app/controllers/courier_controller.dart';
 import 'courier_home_page.dart';
 import 'courier_delivery_page.dart';
 import 'courier_profile_page.dart';
