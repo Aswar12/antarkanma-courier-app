@@ -22,7 +22,7 @@
     </queries>
 
     <application
-        android:label="antarkanma"
+        android:label="Kurir Antarkanma"
         android:name="${applicationName}"
         android:icon="@drawable/logo">
         

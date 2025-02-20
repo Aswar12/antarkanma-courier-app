@@ -1,16 +1,32 @@
-import 'package:antarkanma/app/routes/app_pages.dart';
+import 'package:antarkanma_courier/app/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'firebase_options.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:antarkanma_courier/app/core/bindings/initial_binding.dart';
+import 'app/routes/app_pages.dart';
+import 'firebase_options.dart';
 
-import 'app/constants/app_theme.dart';
-import 'app/constants/app_strings.dart';
-import 'app/bindings/initial_binding.dart';
-import 'package:get_storage/get_storage.dart';
+// Initialize FlutterLocalNotificationsPlugin
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+    FlutterLocalNotificationsPlugin();
 
-Future<void> main() async {
+// Initialize notification channels for Android
+const AndroidNotificationChannel channel = AndroidNotificationChannel(
+  'high_importance_channel',
+  'High Importance Notifications',
+  description: 'This channel is used for important notifications.',
+  importance: Importance.high,
+);
+
+// Handle background messages
+Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
+  print('Handling a background message ${message.messageId}');
+}
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   // Initialize Firebase
@@ -18,43 +34,95 @@ Future<void> main() async {
     options: DefaultFirebaseOptions.currentPlatform,
   );
 
-  // Initialize local notifications plugin
-  final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-      FlutterLocalNotificationsPlugin();
+  // Set up background message handler
+  FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
 
-  // Create the Android notification channel
-  if (GetPlatform.isAndroid) {
-    const AndroidNotificationChannel channel = AndroidNotificationChannel(
-      'antarkanma_notification_channel',
-      'Antarkanma Notifications',
-      description: 'Notifications for Antarkanma app',
-      importance: Importance.max,
+  // Request notification permissions
+  await FirebaseMessaging.instance.requestPermission(
+    alert: true,
+    announcement: false,
+    badge: true,
+    carPlay: false,
+    criticalAlert: false,
+    provisional: false,
+    sound: true,
+  );
+
+  // Create notification channel
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin>()
+      ?.createNotificationChannel(channel);
+
+  // Initialize local notifications
+  await flutterLocalNotificationsPlugin.initialize(
+    const InitializationSettings(
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      iOS: DarwinInitializationSettings(),
+    ),
+    onDidReceiveNotificationResponse: (NotificationResponse details) async {
+      // Handle notification tap
+      final String? payload = details.payload;
+      if (payload != null) {
+        debugPrint('notification payload: $payload');
+        // Navigate based on payload
+        Get.toNamed(Routes.splash, arguments: {'notificationData': payload});
+      }
+    },
+  );
+
+  // Set up foreground message handling
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+    RemoteNotification? notification = message.notification;
+    AndroidNotification? android = message.notification?.android;
+
+    if (notification != null && android != null) {
+      flutterLocalNotificationsPlugin.show(
+        notification.hashCode,
+        notification.title,
+        notification.body,
+        NotificationDetails(
+          android: AndroidNotificationDetails(
+            channel.id,
+            channel.name,
+            channelDescription: channel.description,
+            icon: android.smallIcon,
+          ),
+        ),
+        payload: message.data.toString(),
+      );
+    }
+  });
+
+  // Set up notification tap handling when app is terminated
+  FirebaseMessaging.instance.getInitialMessage().then((RemoteMessage? message) {
+    if (message != null) {
+      // Navigate based on notification data
+      Get.toNamed(
+        Routes.splash,
+        arguments: {'notificationData': message.data.toString()},
+      );
+    }
+  });
+
+  // Set up notification tap handling when app is in background
+  FirebaseMessaging.onMessageOpenedApp.listen((RemoteMessage message) {
+    Get.toNamed(
+      Routes.splash,
+      arguments: {'notificationData': message.data.toString()},
     );
+  });
 
-    await flutterLocalNotificationsPlugin
-        .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
-        ?.createNotificationChannel(channel);
-  }
-
-  await GetStorage.init();
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return GetMaterialApp(
-      title: AppStrings.appName,
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
-      themeMode: ThemeMode.system,
-      initialBinding: InitialBinding(),
-      initialRoute: Routes.splash,
+  runApp(
+    GetMaterialApp(
+      title: "Antarkanma Courier",
+      initialRoute: AppPages.INITIAL,
       getPages: AppPages.routes,
-      debugShowCheckedModeBanner: false,
-    );
-  }
+      initialBinding: InitialBinding(),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+      ),
+    ),
+  );
 }

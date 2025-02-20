@@ -1,5 +1,6 @@
-import 'package:flutter/material.dart';
 
+
+import 'package:antarkanma_courier/app/data/models/cart_item_model.dart';
 
 class OrderItemStatus {
   static const String pending = 'PENDING';
@@ -108,7 +109,7 @@ class OrderItemModel {
     return null;
   }
 
-  factory OrderItemModel.fromCartItem( cartItem, String orderId) {
+  factory OrderItemModel.fromCartItem(CartItemModel cartItem, String orderId) {
     return OrderItemModel(
       quantity: cartItem.quantity,
       price: cartItem.price,

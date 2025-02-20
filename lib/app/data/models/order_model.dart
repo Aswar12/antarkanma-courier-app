@@ -1,5 +1,6 @@
-import 'package:antarkanma/app/data/models/order_item_model.dart';
-import 'package:antarkanma/app/data/models/transaction_model.dart';
+
+import 'package:antarkanma_courier/app/data/models/order_item_model.dart';
+import 'package:antarkanma_courier/app/data/models/transaction_model.dart';
 import 'package:collection/collection.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -108,7 +109,7 @@ class OrderModel {
       userId: userId ?? this.userId,
       items: items ?? this.items,
       totalAmount: totalAmount ?? this.totalAmount,
-      orderStatus: orderStatus ?? this._orderStatus,
+      orderStatus: orderStatus ?? _orderStatus,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
       transaction: transaction ?? this.transaction,

@@ -2,7 +2,7 @@
 
 import 'package:flutter/material.dart';
 
-double defaultMargin = Dimenssions.height10;
+double defaultMargin = Dimensions.height10;
 
 Color textColor = const Color(0xffccc7c5);
 Color mainColor = const Color(0xff82dad0);
@@ -32,8 +32,26 @@ Color secondaryTextColor = const Color(0xFF585858);
 Color subtitleColor = const Color(0xFF8E8E97);
 Color transparentColor = Colors.transparent;
 Color blackColor = const Color(0xff2E2E2E);
-Color logoColor = const Color(0xff020238);
-Color logoColorSecondary = const Color(0xfffffff6600);
+
+// Brand Colors with Gradients
+Color logoColor = const Color(0xff020238); // Deep navy blue
+Color logoColorSecondary = const Color(0xffF66000); // Fixed orange color
+
+// Gradient Lists for flexible usage
+List<Color> primaryGradient = const [
+  Color(0xff020238), // Deep navy blue
+  Color(0xff03034d), // Slightly lighter navy blue
+];
+
+List<Color> secondaryGradient = const [
+  Color(0xffF66000), // Orange
+  Color(0xffFF8533), // Lighter orange
+];
+
+List<Color> brandGradient = const [
+  Color(0xff020238), // Deep navy blue
+  Color(0xffF66000), // Orange
+];
 
 const MaterialColor primarySwatch = MaterialColor(
   0xFFFF6600,
@@ -111,7 +129,7 @@ FontWeight medium = FontWeight.w500;
 FontWeight semiBold = FontWeight.w600;
 FontWeight bold = FontWeight.w700;
 
-class Dimenssions {
+class Dimensions {
   static double screenHeight =
       MediaQueryData.fromView(WidgetsBinding.instance.window).size.height;
   static double screenWidth =
