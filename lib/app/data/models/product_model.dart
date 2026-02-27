@@ -40,7 +40,8 @@ class ProductModel {
     this.ratingInfo,
   });
 
-  List<String> get imageUrls => galleries.map((gallery) => gallery.url).toList();
+  List<String> get imageUrls =>
+      galleries.map((gallery) => gallery.url).toList();
 
   String get firstImageUrl {
     if (galleries.isEmpty || !isValidImageUrl(galleries.first.url)) {
@@ -49,7 +50,8 @@ class ProductModel {
     return galleries.first.url;
   }
 
-  bool get hasImages => galleries.isNotEmpty && galleries.any((g) => isValidImageUrl(g.url));
+  bool get hasImages =>
+      galleries.isNotEmpty && galleries.any((g) => isValidImageUrl(g.url));
 
   bool isValidImageUrl(String url) {
     if (url.isEmpty) return false;
@@ -61,8 +63,11 @@ class ProductModel {
       .where((url) => isValidImageUrl(url))
       .toList();
 
-  String getImageUrl(int index, {String defaultImage = 'assets/image_shoes.png'}) {
-    if (index < 0 || index >= galleries.length || !isValidImageUrl(galleries[index].url)) {
+  String getImageUrl(int index,
+      {String defaultImage = 'assets/image_shoes.png'}) {
+    if (index < 0 ||
+        index >= galleries.length ||
+        !isValidImageUrl(galleries[index].url)) {
       return defaultImage;
     }
     return galleries[index].url;
@@ -151,26 +156,30 @@ class ProductModel {
       List<ProductGalleryModel> parseGalleries(dynamic galleriesData) {
         if (galleriesData == null) return [];
         if (galleriesData is! List) return [];
-        
-        return galleriesData.map((gallery) {
-          if (gallery is! Map<String, dynamic>) return null;
-          try {
-            return ProductGalleryModel.fromJson(gallery);
-          } catch (e) {
-            return null;
-          }
-        }).where((gallery) => gallery != null).cast<ProductGalleryModel>().toList();
+
+        return galleriesData
+            .map((gallery) {
+              if (gallery is! Map<String, dynamic>) return null;
+              try {
+                return ProductGalleryModel.fromJson(gallery);
+              } catch (e) {
+                return null;
+              }
+            })
+            .where((gallery) => gallery != null)
+            .cast<ProductGalleryModel>()
+            .toList();
       }
 
       // Parse rating info with validation
       Map<String, dynamic>? parseRatingInfo(dynamic ratingData) {
         if (ratingData == null) return null;
         if (ratingData is! Map) return null;
-        
+
         return {
-          'average_rating': parsePrice(ratingData['average_rating']) ?? 0.0,
-          'total_reviews': ratingData['total_reviews'] is num 
-              ? (ratingData['total_reviews'] as num).toInt() 
+          'average_rating': parsePrice(ratingData['average_rating']),
+          'total_reviews': ratingData['total_reviews'] is num
+              ? (ratingData['total_reviews'] as num).toInt()
               : int.tryParse(ratingData['total_reviews'].toString()) ?? 0,
         };
       }
@@ -189,31 +198,36 @@ class ProductModel {
           final count = json['reviews_count'];
           return count is int ? count : int.tryParse(count.toString());
         }
-        return json['total_reviews'] is int 
-            ? json['total_reviews'] 
+        return json['total_reviews'] is int
+            ? json['total_reviews']
             : int.tryParse(json['total_reviews'].toString());
       }
 
       final product = ProductModel(
-        id: json['id'] is int ? json['id'] : int.tryParse(json['id'].toString()) ?? 0,
+        id: json['id'] is int
+            ? json['id']
+            : int.tryParse(json['id'].toString()) ?? 0,
         name: json['name']?.toString() ?? '',
         description: json['description']?.toString() ?? '',
         price: parsePrice(json['price']),
         galleries: parseGalleries(json['galleries']),
         status: json['status']?.toString(),
         variants: (json['variants'] as List?)
-            ?.whereType<Map<String, dynamic>>()
-            .map((variant) => VariantModel.fromJson(variant))
-            .toList() ?? [],
+                ?.whereType<Map<String, dynamic>>()
+                .map((variant) => VariantModel.fromJson(variant))
+                .toList() ??
+            [],
         reviews: (json['reviews'] as List?)
-            ?.whereType<Map<String, dynamic>>()
-            .map((review) => ProductReviewModel.fromJson(review))
-            .toList() ?? [],
+                ?.whereType<Map<String, dynamic>>()
+                .map((review) => ProductReviewModel.fromJson(review))
+                .toList() ??
+            [],
         merchant: json['merchant'] is Map<String, dynamic>
             ? MerchantModel.fromJson(json['merchant'] as Map<String, dynamic>)
             : null,
         category: json['category'] is Map<String, dynamic>
-            ? ProductCategoryModel.fromJson(json['category'] as Map<String, dynamic>)
+            ? ProductCategoryModel.fromJson(
+                json['category'] as Map<String, dynamic>)
             : null,
         createdAt: json['created_at'] != null
             ? DateTime.tryParse(json['created_at'].toString())

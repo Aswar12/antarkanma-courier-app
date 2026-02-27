@@ -12,4 +12,5 @@ abstract class Routes {
   static const notifications = '/notifications';
   static const settings = '/settings';
   static const about = '/about';
+  static const reviews = '/reviews';
 }

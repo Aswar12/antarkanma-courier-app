@@ -158,14 +158,19 @@ class AuthService extends GetxService {
 
       await _storageService!.saveToken(token);
       await _storageService!.saveUser(userData);
+      await _storageService!.saveRememberMe(true); // Enable auto-login
+      await _storageService!.saveCredentials(
+        userData['email'] ?? userData['phone_number'] ?? '',
+        '', // Don't save password for security
+      );
 
       currentUser.value = UserModel.fromJson(userData);
       isLoggedIn.value = true;
 
-      debugPrint('Login successful, data saved');
+      debugPrint('Login successful, data saved with auto-login enabled');
     } catch (e) {
       debugPrint('Error in _handleSuccessfulLogin: $e');
-      throw e;
+      rethrow;
     }
   }
 
@@ -249,11 +254,16 @@ class AuthService extends GetxService {
           debugPrint('Login successful, saving credentials');
           await _storageService!.saveToken(token);
           await _storageService!.saveUser(userData);
+
+          // Save remember me and credentials for auto-login
+          await _storageService!.saveRememberMe(true);
           await _storageService!.saveCredentials(identifier, password);
 
           currentUser.value = user;
           isLoggedIn.value = true;
-          Get.offAllNamed(Routes.main);
+          debugPrint(
+              'Auto-login credentials saved successfully for: $identifier');
+          // Note: Navigation will be handled by the controller, not here
           return true;
         } catch (e) {
           debugPrint('Error parsing user data: $e');

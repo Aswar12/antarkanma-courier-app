@@ -1,8 +1,13 @@
 class Config {
   // API Configuration
-  static const String baseUrl = 'https://dev.antarkanmaa.my.id/api';
-  static const int connectTimeout = 30; // seconds
-  static const int receiveTimeout = 30; // seconds
+  // HOST CONFIGURATION:
+  // 1. Localhost (ADB Reverse): 'http://localhost:8000/api' -> run: adb reverse tcp:8000 tcp:8000
+  // 2. Android Emulator: 'http://10.0.2.2:8000/api'
+  // 3. Physical Device (Local IP): 'http://192.168.x.x:8000/api'
+  static const String baseUrl = 'http://localhost:8000/api';
+
+  static const int connectTimeout = 45; // seconds
+  static const int receiveTimeout = 45; // seconds
 
   // App Configuration
   static const String appName = 'Antarkanma Courier';

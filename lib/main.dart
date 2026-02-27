@@ -58,7 +58,11 @@ void main() async {
   await flutterLocalNotificationsPlugin.initialize(
     const InitializationSettings(
       android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-      iOS: DarwinInitializationSettings(),
+      iOS: DarwinInitializationSettings(
+        defaultPresentAlert: true,
+        defaultPresentBadge: true,
+        defaultPresentSound: true,
+      ),
     ),
     onDidReceiveNotificationResponse: (NotificationResponse details) async {
       // Handle notification tap

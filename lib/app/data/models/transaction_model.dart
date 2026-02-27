@@ -77,12 +77,25 @@ class TransactionModel {
   final String paymentMethod;
   final String status;
   final String paymentStatus;
+  final String courierStatus; // tracking posisi kurir
   final DateTime? createdAt;
   final String? note;
   final List<OrderItemModel> items;
   final UserLocationModel? userLocation;
   final List<OrderModel> orders;
   final UserModel? user;
+  final double? distance;
+  final double? duration;
+  final dynamic baseMerchant;
+  final Map<String, dynamic>? deliveryLocation;
+
+  // Courier status constants (mirror backend)
+  static const String courierStatusIdle = 'IDLE';
+  static const String courierStatusHeadingToMerchant = 'HEADING_TO_MERCHANT';
+  static const String courierStatusAtMerchant = 'AT_MERCHANT';
+  static const String courierStatusHeadingToCustomer = 'HEADING_TO_CUSTOMER';
+  static const String courierStatusAtCustomer = 'AT_CUSTOMER';
+  static const String courierStatusDelivered = 'DELIVERED';
 
   TransactionModel({
     this.id,
@@ -94,12 +107,17 @@ class TransactionModel {
     required this.paymentMethod,
     required this.status,
     required this.paymentStatus,
+    this.courierStatus = 'IDLE',
     this.createdAt,
     this.note,
     required this.items,
     this.userLocation,
     required this.orders,
     this.user,
+    this.distance,
+    this.duration,
+    this.baseMerchant,
+    this.deliveryLocation,
   });
 
   factory TransactionModel.fromJson(Map<String, dynamic> json) {
@@ -142,6 +160,24 @@ class TransactionModel {
         user = UserModel.fromJson(transactionData['user']);
       }
 
+      double? distance;
+      if (transactionData['distance'] != null) {
+        if (transactionData['distance'] is num) {
+          distance = (transactionData['distance'] as num).toDouble();
+        } else if (transactionData['distance'] is String) {
+          distance = double.tryParse(transactionData['distance']);
+        }
+      }
+
+      double? duration;
+      if (transactionData['duration'] != null) {
+        if (transactionData['duration'] is num) {
+          duration = (transactionData['duration'] as num).toDouble();
+        } else if (transactionData['duration'] is String) {
+          duration = double.tryParse(transactionData['duration']);
+        }
+      }
+
       // Parse prices that could be string or number
       double totalPrice = 0.0;
       if (transactionData['total_price'] != null ||
@@ -177,6 +213,7 @@ class TransactionModel {
         status: transactionData['status']?.toString() ?? 'PENDING',
         paymentStatus:
             transactionData['payment_status']?.toString() ?? 'PENDING',
+        courierStatus: transactionData['courier_status']?.toString() ?? 'IDLE',
         createdAt: transactionData['created_at'] != null
             ? DateTime.tryParse(transactionData['created_at'].toString())
             : null,
@@ -185,6 +222,10 @@ class TransactionModel {
         userLocation: userLocation,
         orders: orders,
         user: user,
+        distance: distance,
+        duration: duration,
+        baseMerchant: transactionData['base_merchant'],
+        deliveryLocation: transactionData['delivery_location'],
       );
     } catch (e, stackTrace) {
       print('Error parsing TransactionModel: $e');

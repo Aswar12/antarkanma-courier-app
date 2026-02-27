@@ -24,7 +24,7 @@
     <application
         android:label="Kurir Antarkanma"
         android:name="${applicationName}"
-        android:icon="@drawable/logo">
+        android:icon="@mipmap/ic_launcher">
         
         <!-- FCM Default Channel ID -->
         <meta-data

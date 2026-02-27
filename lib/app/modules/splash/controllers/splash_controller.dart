@@ -2,9 +2,15 @@ import 'package:antarkanma_courier/app/routes/app_routes.dart';
 import 'package:get/get.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../data/models/user_model.dart';
+import '../../../services/auth_service.dart';
+import '../../../services/storage_service.dart';
 
 class SplashController extends GetxController {
   final AuthController _authController = Get.find<AuthController>();
+  final AuthService _authService = Get.find<AuthService>();
+
+  // Observable for splash animation
+  final RxBool isInitializing = false.obs;
 
   @override
   void onInit() {
@@ -13,22 +19,34 @@ class SplashController extends GetxController {
   }
 
   void _initSplash() async {
+    print('=== COURIER SPLASH: Starting initialization ===');
+
     try {
-      // Show splash screen for minimum 3 seconds
-      await Future.delayed(const Duration(seconds: 3));
-      
-      // Attempt auto login
+      // Show animation first
+      isInitializing.value = true;
+      await Future.delayed(const Duration(milliseconds: 500));
+
+      print('=== Checking fast path: isLoggedIn=${_authService.isLoggedIn.value} ===');
+      if (_authService.isLoggedIn.value &&
+          _authService.getCurrentUser()?.isCourier == true) {
+        print('Fast path: User is logged in as courier, navigating to main');
+        Get.offAllNamed(Routes.main);
+        return;
+      }
+
+      print('=== Checking auto-login eligibility ===');
       final bool autoLoginSuccess = await _authController.tryAutoLogin();
-      
+      print('Auto-login result: $autoLoginSuccess');
+
       if (autoLoginSuccess) {
-        // Get current user data to check role
         final UserModel? userData = _authController.getCurrentUser();
-        
-        // Only allow courier role
+        print('User role after auto-login: ${userData?.role}');
+
         if (userData?.isCourier ?? false) {
+          print('Auto-login success, navigating to main');
           Get.offAllNamed(Routes.main);
         } else {
-          // If not a courier, logout and go to login
+          print('User is not courier, logging out and going to login');
           await _authController.logout();
           Get.offAllNamed(Routes.login);
           Get.snackbar(
@@ -38,16 +56,20 @@ class SplashController extends GetxController {
           );
         }
       } else {
+        print('Auto-login failed, navigating to login');
         Get.offAllNamed(Routes.login);
       }
-    } catch (e) {
-      // If any error occurs during auto login, redirect to login
+    } catch (e, stackTrace) {
+      print('Error in splash controller: $e');
+      print('Stack trace: $stackTrace');
       Get.offAllNamed(Routes.login);
       Get.snackbar(
         'Error',
-        'Terjadi kesalahan saat auto login',
+        'Terjadi kesalahan saat memeriksa sesi login',
         snackPosition: SnackPosition.TOP,
       );
+    } finally {
+      print('=== COURIER SPLASH: Initialization complete ===');
     }
   }
 }

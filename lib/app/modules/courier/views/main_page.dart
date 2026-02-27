@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import '../../../../theme.dart';
-import '../../auth/controllers/auth_controller.dart';
 import '../../../controllers/main_controller.dart';
 import 'package:antarkanma_courier/app/modules/courier/views/home_page.dart';
 import 'package:antarkanma_courier/app/modules/courier/views/order_page.dart';
@@ -13,20 +12,9 @@ class MainPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final MainController controller = Get.find<MainController>();
-    final AuthController authController = Get.find<AuthController>();
 
     return Scaffold(
       backgroundColor: backgroundColor1,
-      appBar: AppBar(
-        backgroundColor: primaryColor,
-        title: const Text('Antarkanma Courier'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: () => authController.logout(),
-          ),
-        ],
-      ),
       body: PageView(
         physics: const NeverScrollableScrollPhysics(),
         controller: controller.pageController,

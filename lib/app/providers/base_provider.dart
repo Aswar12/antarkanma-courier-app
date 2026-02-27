@@ -1,17 +1,19 @@
 import 'package:antarkanma_courier/config.dart';
 import 'package:dio/dio.dart';
-
+import 'package:flutter/foundation.dart';
 
 class BaseProvider {
   final Dio _dio;
 
-  BaseProvider() : _dio = Dio(BaseOptions(
-    baseUrl: Config.baseUrl,
-    connectTimeout: Duration(seconds: Config.connectTimeout),
-    receiveTimeout: Duration(seconds: Config.receiveTimeout),
-  ));
+  BaseProvider()
+      : _dio = Dio(BaseOptions(
+          baseUrl: Config.baseUrl,
+          connectTimeout: Duration(seconds: Config.connectTimeout),
+          receiveTimeout: Duration(seconds: Config.receiveTimeout),
+        ));
 
-  Future<dynamic> get(String path, {Map<String, dynamic>? queryParams, String? token}) async {
+  Future<dynamic> get(String path,
+      {Map<String, dynamic>? queryParams, String? token}) async {
     try {
       final response = await _dio.get(
         path,
@@ -24,7 +26,8 @@ class BaseProvider {
     }
   }
 
-  Future<dynamic> post(String path, {
+  Future<dynamic> post(
+    String path, {
     dynamic data,
     Map<String, dynamic>? queryParams,
     String? token,
@@ -42,7 +45,8 @@ class BaseProvider {
     }
   }
 
-  Future<dynamic> put(String path, {
+  Future<dynamic> put(
+    String path, {
     dynamic data,
     Map<String, dynamic>? queryParams,
     String? token,
@@ -60,7 +64,8 @@ class BaseProvider {
     }
   }
 
-  Future<dynamic> delete(String path, {
+  Future<dynamic> delete(
+    String path, {
     dynamic data,
     Map<String, dynamic>? queryParams,
     String? token,
@@ -95,21 +100,28 @@ class BaseProvider {
   }
 
   String _handleError(DioException error) {
+    debugPrint(
+        '🔴 API Error: ${error.type} | Path: ${error.requestOptions.path} | Message: ${error.message}');
+
     if (error.response?.data?['message'] != null) {
       return error.response?.data['message'];
     }
 
     switch (error.type) {
       case DioExceptionType.connectionTimeout:
+        return 'Koneksi timeout. Pastikan server aktif atau cek "adb reverse".';
       case DioExceptionType.sendTimeout:
+        return 'Gagal mengirim data (Send timeout).';
       case DioExceptionType.receiveTimeout:
-        return 'Koneksi timeout. Silakan coba lagi.';
+        return 'Server lambat merespon (Receive timeout).';
+      case DioExceptionType.connectionError:
+        return 'Tidak dapat terhubung ke server. Pastikan backend aktif.';
       case DioExceptionType.badResponse:
-        return 'Terjadi kesalahan server.';
+        return 'Terjadi kesalahan server (${error.response?.statusCode}).';
       case DioExceptionType.cancel:
         return 'Permintaan dibatalkan.';
       default:
-        return 'Terjadi kesalahan. Silakan coba lagi.';
+        return 'Terjadi kesalahan koneksi. Silakan coba lagi.';
     }
   }
 
