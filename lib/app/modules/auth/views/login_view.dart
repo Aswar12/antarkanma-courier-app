@@ -18,12 +18,13 @@ class LoginView extends GetView<AuthController> {
           padding: EdgeInsets.all(Dimensions.height20),
           child: Column(
             children: [
-              SizedBox(height: Dimensions.height40),
+              SizedBox(height: Dimensions.height20),
               header(),
               SizedBox(height: Dimensions.height40),
               loginForm(),
               SizedBox(height: Dimensions.height30),
               loginButton(),
+              SizedBox(height: Dimensions.height20),
             ],
           ),
         ),
@@ -39,7 +40,7 @@ class LoginView extends GetView<AuthController> {
           height: Dimensions.height80,
           fit: BoxFit.contain,
         ),
-        SizedBox(height: Dimensions.height20),
+        SizedBox(height: Dimensions.height30),
         Text(
           'Selamat Datang',
           style: primaryTextStyle.copyWith(
@@ -62,17 +63,20 @@ class LoginView extends GetView<AuthController> {
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor2,
-        borderRadius: BorderRadius.circular(Dimensions.radius15),
+        borderRadius: BorderRadius.circular(Dimensions.radius20),
         boxShadow: [
           BoxShadow(
-            color: Colors.grey.withValues(alpha: 0.1),
-            spreadRadius: 1,
-            blurRadius: 5,
-            offset: const Offset(0, 3),
+            color: Colors.grey.withValues(alpha: 0.08),
+            spreadRadius: 2,
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
-      padding: EdgeInsets.all(Dimensions.height20),
+      padding: EdgeInsets.symmetric(
+        horizontal: Dimensions.width20,
+        vertical: Dimensions.height30,
+      ),
       child: Form(
         key: controller.formKey,
         child: Column(
@@ -89,7 +93,7 @@ class LoginView extends GetView<AuthController> {
                 return null;
               },
             ),
-            SizedBox(height: Dimensions.height15),
+            SizedBox(height: Dimensions.height20),
             CustomInputField(
               label: 'Password',
               hintText: 'Masukkan password',

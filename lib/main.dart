@@ -6,6 +6,8 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:antarkanma_courier/app/core/bindings/initial_binding.dart';
 import 'app/routes/app_pages.dart';
+import 'app/modules/chat/controllers/chat_controller.dart';
+import 'app/modules/chat/controllers/chat_list_controller.dart';
 import 'firebase_options.dart';
 
 // Initialize FlutterLocalNotificationsPlugin
@@ -79,6 +81,32 @@ void main() async {
   FirebaseMessaging.onMessage.listen((RemoteMessage message) {
     RemoteNotification? notification = message.notification;
     AndroidNotification? android = message.notification?.android;
+    
+    // Handle chat messages
+    if (message.data['type'] == 'CHAT_MESSAGE') {
+      debugPrint('Chat message received: ${message.data}');
+      
+      // Refresh chat list if controller exists
+      try {
+        if (Get.isRegistered<ChatListController>()) {
+          debugPrint('ChatListController found, refreshing chat list...');
+          Get.find<ChatListController>().fetchChats();
+        }
+        
+        // If chat page is open, fetch new messages
+        if (Get.isRegistered<ChatController>()) {
+          final chatController = Get.find<ChatController>();
+          final currentChatId = chatController.chatId;
+          
+          if (currentChatId?.toString() == message.data['chat_id']) {
+            debugPrint('Chat page is open, fetching new messages...');
+            chatController.fetchMessages();
+          }
+        }
+      } catch (e) {
+        debugPrint('Error handling chat message: $e');
+      }
+    }
 
     if (notification != null && android != null) {
       flutterLocalNotificationsPlugin.show(

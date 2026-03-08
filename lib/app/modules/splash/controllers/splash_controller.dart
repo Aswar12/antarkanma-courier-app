@@ -3,7 +3,6 @@ import 'package:get/get.dart';
 import '../../auth/controllers/auth_controller.dart';
 import '../../../data/models/user_model.dart';
 import '../../../services/auth_service.dart';
-import '../../../services/storage_service.dart';
 
 class SplashController extends GetxController {
   final AuthController _authController = Get.find<AuthController>();
@@ -26,7 +25,8 @@ class SplashController extends GetxController {
       isInitializing.value = true;
       await Future.delayed(const Duration(milliseconds: 500));
 
-      print('=== Checking fast path: isLoggedIn=${_authService.isLoggedIn.value} ===');
+      print(
+          '=== Checking fast path: isLoggedIn=${_authService.isLoggedIn.value} ===');
       if (_authService.isLoggedIn.value &&
           _authService.getCurrentUser()?.isCourier == true) {
         print('Fast path: User is logged in as courier, navigating to main');

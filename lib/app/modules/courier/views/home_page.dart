@@ -8,6 +8,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 
 import 'package:flutter/services.dart';
 import 'package:antarkanma_courier/app/data/models/transaction_model.dart';
+import 'package:antarkanma_courier/app/routes/app_routes.dart';
+import 'package:antarkanma_courier/app/widgets/interactive_map.dart';
 
 class HomePage extends GetView<MainController> {
   const HomePage({super.key});
@@ -45,6 +47,42 @@ class HomePage extends GetView<MainController> {
                 _buildHeader(),
                 _buildWalletSection(),
                 _buildStatsSection(),
+                // Quick action: Delivery History
+                Padding(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: utils.Dimensions.width20),
+                  child: GestureDetector(
+                    onTap: () => Get.toNamed(Routes.deliveryHistory),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: logoColor.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: logoColor.withOpacity(0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.history_rounded,
+                              color: logoColor, size: 20),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Riwayat Pengantaran',
+                              style: primaryTextStyle.copyWith(
+                                fontSize: 14,
+                                fontWeight: medium,
+                                color: const Color(0xFF000040),
+                              ),
+                            ),
+                          ),
+                          Icon(Icons.chevron_right,
+                              color: Colors.grey.shade400, size: 20),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 _buildIncomingOrdersSection(),
                 SizedBox(
                     height:
@@ -159,38 +197,46 @@ class HomePage extends GetView<MainController> {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
-                  // Simulated toggle switch for online
-                  Container(
-                    width: 44,
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: logoColor,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        Container(
-                          width: 20,
-                          height: 20,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.white,
+                  // Toggle switch for online/offline with onTap
+                  GestureDetector(
+                    onTap: controller.toggleOnlineOffline,
+                    child: Container(
+                      width: 44,
+                      height: 24,
+                      decoration: BoxDecoration(
+                        color: controller.isOnline.value
+                            ? logoColor
+                            : Colors.grey.shade400,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 2),
+                      child: Row(
+                        mainAxisAlignment: controller.isOnline.value
+                            ? MainAxisAlignment.end
+                            : MainAxisAlignment.start,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            width: 20,
+                            height: 20,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              color: Colors.white,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 4),
-                  Text(
-                    'ONLINE',
-                    style: primaryTextStyle.copyWith(
-                      fontSize: 10,
-                      color: Colors.white,
-                      fontWeight: bold,
-                    ),
-                  )
+                  Obx(() => Text(
+                        controller.isOnline.value ? 'ONLINE' : 'OFFLINE',
+                        style: primaryTextStyle.copyWith(
+                          fontSize: 10,
+                          color: Colors.white,
+                          fontWeight: bold,
+                        ),
+                      )),
                 ],
               ),
             ],
@@ -264,7 +310,7 @@ class HomePage extends GetView<MainController> {
                 ],
               ),
               ElevatedButton(
-                onPressed: () {},
+                onPressed: () => _showWithdrawBottomSheet(),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: logoColor,
                   foregroundColor: Colors.white,
@@ -501,83 +547,66 @@ class HomePage extends GetView<MainController> {
       ),
       child: Column(
         children: [
-          // Map Background placeholder
-          Container(
-            height: 176, // 44 tailwind units
-            width: double.infinity,
-            decoration: const BoxDecoration(
-              borderRadius: BorderRadius.only(
-                topLeft: Radius.circular(20),
-                topRight: Radius.circular(20),
+          // Interactive Map with flutter_map
+          Stack(
+            children: [
+              SizedBox(
+                height: 176,
+                width: double.infinity,
+                child: InteractiveMap(
+                  transaction: trx,
+                  showRoute: true,
+                ),
               ),
-              image: DecorationImage(
-                image: CachedNetworkImageProvider(
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuDhR1eCqpfixIoAqo-2Tqceajt--dpTUIURQDg75e_28ypVqRJeOrsLggKa_nLnSWuEfx9tq2g4RmDHZdI1Ogs4Th2o_vuoczEVpsWXFnS4-2tFEFeqJdjuVWke1yHU-42lhK5KH_dB1G99yxUg_vWYn3tQ4BUJXvd521oWZN4rZxboZGmxIXMK7K7UT9swUiTtb10zQV99GeNJKQvUX1PUnzPuXadrNKpsWe1LM59QOfgLxYxNU4kv4X2Voi9n0CkG87uOt46Hnoq4'),
-                fit: BoxFit.cover,
-              ),
-            ),
-            child: Container(
-              color: const Color(0xFF000040).withOpacity(0.1),
-              padding: const EdgeInsets.all(16),
-              child: Stack(
-                children: [
-                  Align(
-                    alignment: Alignment.topLeft,
+              // "Lihat Peta" button overlay
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () {
+                      Get.toNamed(Routes.mapView, arguments: trx);
+                    },
+                    borderRadius: BorderRadius.circular(8),
                     child: Container(
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.9),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.location_on, color: logoColor, size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Pick-up: $merchantName',
-                            style: primaryTextStyle.copyWith(
-                                fontSize: 9, fontWeight: bold),
-                          )
-                        ],
-                      ),
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.bottomRight,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 4),
+                          horizontal: 12, vertical: 6),
                       decoration: BoxDecoration(
                         color: logoColor.withOpacity(0.9),
                         borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.2),
+                            blurRadius: 4,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Icon(Icons.navigation,
-                              color: Colors.white, size: 14),
+                          const Icon(
+                            Icons.fullscreen,
+                            color: Colors.white,
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           Text(
-                            'Drop-off: $dropoffAddr',
+                            'Lihat Peta',
                             style: primaryTextStyle.copyWith(
-                                fontSize: 9,
-                                fontWeight: bold,
-                                color: Colors.white),
-                          )
+                              fontSize: 11,
+                              fontWeight: bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   ),
-                  // Simple SVG-like curve approximation using CustomPaint would be complex,
-                  // using a simple dashed line icon placeholder
-                  Center(
-                    child: Icon(Icons.route, color: logoColor, size: 36),
-                  ),
-                ],
+                ),
               ),
-            ),
+            ],
           ),
 
           // Order Details
@@ -645,7 +674,7 @@ class HomePage extends GetView<MainController> {
                               fontSize: 10, fontWeight: bold, letterSpacing: 1),
                         ),
                         Text(
-                          '#ANT-${trx.id}',
+                          '#ANTAR-${trx.id}',
                           style: primaryTextStyle.copyWith(
                               fontSize: 11,
                               fontWeight: medium,
@@ -715,6 +744,205 @@ class HomePage extends GetView<MainController> {
           )
         ],
       ),
+    );
+  }
+
+  void _showWithdrawBottomSheet() {
+    final TextEditingController amountController = TextEditingController();
+    final currentBalance = controller.totalEarningsToday.value;
+
+    Get.bottomSheet(
+      Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Tarik Dana',
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 18,
+                    fontWeight: semiBold,
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Get.back(),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Saldo Tersedia',
+              style: secondaryTextStyle.copyWith(
+                fontSize: 12,
+                color: chatTextSecondary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              NumberFormat.currency(
+                      locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+                  .format(currentBalance),
+              style: primaryTextStyle.copyWith(
+                fontSize: 24,
+                fontWeight: extraBold,
+                color: logoColor,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Input Amount
+            Text(
+              'Jumlah Penarikan',
+              style: primaryTextStyle.copyWith(
+                fontSize: 14,
+                fontWeight: semiBold,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: amountController,
+              keyboardType: TextInputType.number,
+              decoration: InputDecoration(
+                hintText: 'Minimal Rp 10.000',
+                prefixText: 'Rp ',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: logoColor, width: 2),
+                ),
+                contentPadding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+              ),
+              onChanged: (value) {
+                // Auto-format to thousands
+                final numericValue = double.tryParse(value.replaceAll('.', ''));
+                if (numericValue != null) {
+                  final formatted = NumberFormat('#,###', 'id_ID')
+                      .format(numericValue.toInt());
+                  if (value != formatted) {
+                    amountController.value = TextEditingValue(
+                      text: formatted,
+                      selection:
+                          TextSelection.collapsed(offset: formatted.length),
+                    );
+                  }
+                }
+              },
+            ),
+            const SizedBox(height: 8),
+            Text(
+              'Minimum penarikan: Rp 10.000',
+              style: secondaryTextStyle.copyWith(
+                fontSize: 11,
+                color: Colors.orange.shade700,
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            // Submit Button
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () {
+                  final amountText = amountController.text.replaceAll('.', '');
+                  final amount = double.tryParse(amountText);
+
+                  if (amount == null || amount < 10000) {
+                    Get.snackbar(
+                      'Jumlah Tidak Valid',
+                      'Minimum penarikan adalah Rp 10.000',
+                      backgroundColor: Colors.orange,
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.TOP,
+                    );
+                    return;
+                  }
+
+                  if (amount > currentBalance) {
+                    Get.snackbar(
+                      'Saldo Tidak Mencukupi',
+                      'Jumlah penarikan melebihi saldo tersedia',
+                      backgroundColor: Colors.red,
+                      colorText: Colors.white,
+                      snackPosition: SnackPosition.TOP,
+                    );
+                    return;
+                  }
+
+                  Get.back(); // Close bottom sheet
+                  controller.withdrawEarnings(amount);
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: logoColor,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  elevation: 3,
+                ),
+                child: Text(
+                  'Tarik Sekarang',
+                  style: primaryTextStyle.copyWith(
+                    fontSize: 14,
+                    fontWeight: semiBold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Info Note
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.blue.shade200),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 16, color: Colors.blue.shade700),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Dana akan ditransfer ke rekening Anda dalam 1-3 hari kerja.',
+                      style: secondaryTextStyle.copyWith(
+                        fontSize: 11,
+                        color: Colors.blue.shade800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
     );
   }
 }

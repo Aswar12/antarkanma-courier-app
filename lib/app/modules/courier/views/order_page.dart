@@ -324,6 +324,30 @@ class OrderPage extends GetView<MainController> {
                             ],
                           ),
                         ),
+                        if (isActive && transaction.courierStatus != 'IDLE')
+                          Container(
+                            margin: EdgeInsets.only(left: Dimensions.width8),
+                            decoration: BoxDecoration(
+                              color: primaryColor.withValues(alpha: 0.1),
+                              shape: BoxShape.circle,
+                            ),
+                            child: IconButton(
+                              onPressed: () {
+                                Get.toNamed('/chat/${transaction.id}',
+                                    arguments: {
+                                      'chatId': null,
+                                      'orderId': transaction.id,
+                                      'transactionId': transaction.id,
+                                    });
+                              },
+                              icon: Icon(
+                                Icons.chat_bubble_outline,
+                                color: primaryColor,
+                                size: 20,
+                              ),
+                              tooltip: 'Chat Customer',
+                            ),
+                          ),
                       ],
                     ),
                     SizedBox(height: Dimensions.height16),

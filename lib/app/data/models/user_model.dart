@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+
 class UserModel {
   final int id;
   final String name;
@@ -8,6 +10,8 @@ class UserModel {
   final String? profilePhotoUrl;
   final String? profilePhotoPath;
   final double balance; // New property
+  final int? courierId; // Courier ID for chat initiation
+  final bool isActive; // Courier online/offline status
 
   static const String ROLE_USER = 'USER';
   static const String ROLE_COURIER = 'COURIER';
@@ -22,6 +26,8 @@ class UserModel {
     this.profilePhotoUrl,
     this.profilePhotoPath,
     required this.balance, // Include in constructor
+    this.courierId, // Include courier ID
+    this.isActive = true, // Include courier active status
   });
 
   factory UserModel.fromJson(Map<String, dynamic>? json) {
@@ -69,8 +75,40 @@ class UserModel {
       role = ROLE_USER; // Default to USER role
     }
 
-    // Safely get balance
-    double balance = json['balance']?.toDouble() ?? 0.0;
+    // Safely get balance (API may return String or num)
+    double balance = 0.0;
+    if (json['balance'] != null) {
+      balance = double.tryParse('${json['balance']}') ?? 0.0;
+    }
+    if (balance == 0.0 &&
+        json['courier'] != null &&
+        json['courier'] is Map<String, dynamic> &&
+        json['courier']['wallet_balance'] != null) {
+      balance = double.tryParse('${json['courier']['wallet_balance']}') ?? 0.0;
+    }
+
+    // Get courier ID from nested courier object (if backend sends it)
+    // Backend sends: user: { id: 249, courier: { id: 21, ... } }
+    int? courierId;
+    if (json['courier'] != null && json['courier'] is Map<String, dynamic>) {
+      final courierData = json['courier'] as Map<String, dynamic>;
+      if (courierData['id'] is int) {
+        courierId = courierData['id'];
+      } else if (courierData['id'] is String) {
+        courierId = int.tryParse(courierData['id']);
+      }
+      debugPrint(
+          'UserModel: Extracted courier_id from courier object: $courierId');
+    }
+
+    // Get courier active status from nested courier object
+    bool isActive = true;
+    if (json['courier'] != null && json['courier'] is Map<String, dynamic>) {
+      final courierData = json['courier'] as Map<String, dynamic>;
+      isActive = courierData['is_active'] ?? true;
+      debugPrint(
+          'UserModel: Extracted courier is_active from courier object: $isActive');
+    }
 
     return UserModel(
       id: id,
@@ -82,6 +120,8 @@ class UserModel {
       profilePhotoUrl: photoUrl,
       profilePhotoPath: json['profile_photo_path']?.toString(),
       balance: balance, // Include balance
+      courierId: courierId, // Extract from courier object
+      isActive: isActive, // Extract from courier object
     );
   }
 
@@ -96,6 +136,8 @@ class UserModel {
       'profile_photo_url': profilePhotoUrl,
       'profile_photo_path': profilePhotoPath,
       'balance': balance, // Include balance in toJson
+      'courier_id': courierId, // Include courier ID
+      'is_active': isActive, // Include courier active status
     };
   }
 
@@ -112,7 +154,10 @@ class UserModel {
         other.username == username &&
         other.profilePhotoUrl == profilePhotoUrl &&
         other.profilePhotoPath == profilePhotoPath &&
-        other.balance == balance; // Include balance in equality check
+        other.balance == balance && // Include balance in equality check
+        other.courierId == courierId && // Include courier ID in equality check
+        other.isActive ==
+            isActive; // Include courier active status in equality check
   }
 
   @override
@@ -125,7 +170,9 @@ class UserModel {
         username.hashCode ^
         profilePhotoUrl.hashCode ^
         profilePhotoPath.hashCode ^
-        balance.hashCode; // Include balance in hash code
+        balance.hashCode ^
+        courierId.hashCode ^
+        isActive.hashCode; // Include courier active status in hash code
   }
 
   UserModel copyWith({
@@ -138,6 +185,8 @@ class UserModel {
     String? profilePhotoUrl,
     String? profilePhotoPath,
     double? balance, // Include balance in copyWith
+    int? courierId, // Include courier ID in copyWith
+    bool? isActive, // Include courier active status in copyWith
   }) {
     return UserModel(
       id: id ?? this.id,
@@ -149,6 +198,9 @@ class UserModel {
       profilePhotoUrl: profilePhotoUrl ?? this.profilePhotoUrl,
       profilePhotoPath: profilePhotoPath ?? this.profilePhotoPath,
       balance: balance ?? this.balance, // Include balance in copyWith
+      courierId: courierId ?? this.courierId, // Include courier ID in copyWith
+      isActive: isActive ??
+          this.isActive, // Include courier active status in copyWith
     );
   }
 

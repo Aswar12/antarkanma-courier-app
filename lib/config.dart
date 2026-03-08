@@ -6,8 +6,9 @@ class Config {
   // 3. Physical Device (Local IP): 'http://192.168.x.x:8000/api'
   static const String baseUrl = 'http://localhost:8000/api';
 
-  static const int connectTimeout = 45; // seconds
-  static const int receiveTimeout = 45; // seconds
+  static const int connectTimeout =
+      60; // seconds (increased for slow connections)
+  static const int receiveTimeout = 60; // seconds
 
   // App Configuration
   static const String appName = 'Antarkanma Courier';
@@ -24,9 +25,9 @@ class Config {
   static const String loginEndpoint = '/login';
   static const String logoutEndpoint = '/logout';
   static const String refreshTokenEndpoint = '/refresh';
-  static const String profileEndpoint = '/profile';
-  static const String updateProfileEndpoint = '/profile/update';
-  static const String updatePhotoEndpoint = '/profile/photo';
+  static const String profileEndpoint = '/user/profile';
+  static const String updateProfileEndpoint = '/user/profile';
+  static const String updatePhotoEndpoint = '/user/profile/photo';
 
   // New registration endpoint
   static const String registerEndpoint = '/courier/register';

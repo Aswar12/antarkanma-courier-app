@@ -4,6 +4,7 @@ import '../../../../theme.dart';
 import '../../../controllers/main_controller.dart';
 import 'package:antarkanma_courier/app/modules/courier/views/home_page.dart';
 import 'package:antarkanma_courier/app/modules/courier/views/order_page.dart';
+import 'package:antarkanma_courier/app/modules/chat/views/chat_list_page.dart';
 import 'package:antarkanma_courier/app/modules/courier/views/profile_page.dart';
 
 class MainPage extends StatelessWidget {
@@ -22,6 +23,7 @@ class MainPage extends StatelessWidget {
         children: const [
           HomePage(),
           OrderPage(),
+          ChatListPage(),
           ProfilePage(),
         ],
       ),
@@ -55,6 +57,11 @@ class MainPage extends StatelessWidget {
                 icon: Icon(Icons.list_alt_outlined),
                 activeIcon: Icon(Icons.list_alt),
                 label: 'Orders',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.chat_bubble_outline),
+                activeIcon: Icon(Icons.chat),
+                label: 'Chat',
               ),
               BottomNavigationBarItem(
                 icon: Icon(Icons.person_outline),

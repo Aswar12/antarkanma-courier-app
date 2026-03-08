@@ -23,13 +23,15 @@ class MainController extends GetxController {
   final RxBool hasOrders = false.obs;
   final RxInt currentIndex = 0.obs;
   late PageController pageController;
-  Timer? _pollingTimer;
 
   // Daily statistics
   final RxInt totalOrdersToday = 0.obs;
   final RxInt completedOrdersToday = 0.obs;
   final RxDouble totalEarningsToday = 0.0.obs;
   final RxDouble avgDeliveryTime = 0.0.obs;
+
+  // Online/Offline status
+  final RxBool isOnline = true.obs;
 
   @override
   void onInit() {
@@ -38,21 +40,7 @@ class MainController extends GetxController {
     fetchCourierData();
     fetchOrders();
     fetchDailyStats();
-    _startPolling();
     initializeMessaging();
-  }
-
-  void _startPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = Timer.periodic(const Duration(seconds: 15), (_) {
-      fetchOrders(isBackground: true);
-      fetchDailyStats();
-    });
-  }
-
-  void _stopPolling() {
-    _pollingTimer?.cancel();
-    _pollingTimer = null;
   }
 
   Future<void> initializeMessaging() async {
@@ -66,18 +54,28 @@ class MainController extends GetxController {
 
   @override
   void onClose() {
-    _stopPolling();
     pageController.dispose();
     super.onClose();
   }
 
   Future<void> fetchCourierData() async {
     try {
+      // First try to get fresh data from server
+      final freshUser = await _authService.getProfile();
+      if (freshUser != null) {
+        courierData.value = freshUser;
+        isOnline.value = freshUser.isActive;
+        debugPrint(
+            'Courier data refreshed from server: ${freshUser.displayName}, balance: ${freshUser.balance}, isOnline: ${freshUser.isActive}');
+        return;
+      }
+      // Fallback to cached data
       final userData = _authService.getCurrentUser();
       if (userData != null) {
         courierData.value = userData;
+        isOnline.value = userData.isActive;
         debugPrint(
-            'Courier data fetched successfully: ${userData.displayName}');
+            'Courier data from cache: ${userData.displayName}, balance: ${userData.balance}, isOnline: ${userData.isActive}');
       }
     } catch (e) {
       debugPrint('Error fetching courier data: $e');
@@ -155,6 +153,7 @@ class MainController extends GetxController {
 
   Future<void> refreshOrders() async {
     await fetchOrders();
+    await _authService.getProfile();
   }
 
   Future<void> fetchDailyStats() async {
@@ -176,6 +175,111 @@ class MainController extends GetxController {
       }
     } catch (e) {
       debugPrint('Error fetching daily stats: $e');
+    }
+  }
+
+  Future<void> toggleOnlineOffline() async {
+    try {
+      final userData = _authService.getCurrentUser();
+      if (userData == null || userData.courierId == null) {
+        debugPrint('Cannot toggle: Courier data not found');
+        return;
+      }
+
+      final newStatus = !isOnline.value;
+
+      final response = await _courierProvider.updateCourierStatus(
+        userData.courierId!,
+        isActive: newStatus,
+      );
+
+      if (!response.status.hasError &&
+          response.body != null &&
+          response.body['meta']['status'] == 'success') {
+        isOnline.value = newStatus;
+
+        Get.snackbar(
+          newStatus ? 'Online' : 'Offline',
+          newStatus
+              ? 'Anda sekarang online dan siap menerima pesanan'
+              : 'Anda sekarang offline',
+          backgroundColor: newStatus ? Colors.green : Colors.orange,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 2),
+        );
+
+        debugPrint(
+            'Courier status toggled to: ${newStatus ? "ONLINE" : "OFFLINE"}');
+      } else {
+        Get.snackbar(
+          'Gagal',
+          response.body?['meta']?['message'] ?? 'Gagal mengubah status',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      debugPrint('Error toggling online/offline status: $e');
+      Get.snackbar(
+        'Error',
+        'Gagal menghubungi server',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
+  }
+
+  Future<void> withdrawEarnings(double amount) async {
+    try {
+      Get.dialog(
+        const Center(child: CircularProgressIndicator()),
+        barrierDismissible: false,
+      );
+
+      final response = await _courierProvider.withdrawEarnings(amount);
+      Get.back(); // Close dialog
+
+      if (!response.status.hasError &&
+          response.body != null &&
+          response.body['meta']['status'] == 'success') {
+        final data = response.body['data'];
+
+        Get.snackbar(
+          'Penarikan Berhasil',
+          'Penarikan Rp ${amount.toStringAsFixed(0)} berhasil diproses. Dana akan ditransfer dalam 1-3 hari kerja.',
+          backgroundColor: Colors.green,
+          colorText: Colors.white,
+          snackPosition: SnackPosition.TOP,
+          duration: const Duration(seconds: 4),
+        );
+
+        // Refresh daily stats to update balance
+        fetchDailyStats();
+
+        debugPrint(
+            'Withdrawal successful: $amount, new balance: ${data['new_balance']}');
+      } else {
+        Get.snackbar(
+          'Penarikan Gagal',
+          response.body?['meta']?['message'] ??
+              'Terjadi kesalahan saat memproses penarikan.',
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+          duration: const Duration(seconds: 4),
+        );
+      }
+    } catch (e) {
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
+      debugPrint('Error withdrawing earnings: $e');
+      Get.snackbar(
+        'Error',
+        'Gagal menghubungi server',
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
     }
   }
 

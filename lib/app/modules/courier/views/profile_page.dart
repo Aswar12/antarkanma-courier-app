@@ -233,6 +233,43 @@ class ProfilePage extends GetView<MainController> {
                 color: Colors.white.withOpacity(0.5),
               ),
             ),
+            const SizedBox(height: 16),
+            // Topup Button
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Get.toNamed('/topup'),
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Topup'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white,
+                      foregroundColor: const Color(0xFF000040),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Get.toNamed('/topup-history'),
+                    icon: const Icon(Icons.history, size: 18),
+                    label: const Text('Riwayat'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.white.withOpacity(0.15),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ],
         ),
       ),

@@ -258,7 +258,7 @@ class _AnimatedLogoState extends State<_AnimatedLogo>
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(30),
                   child: Image.asset(
-                    'assets/icon_courier_nobg.png',
+                    'assets/logonobg.png',
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return const Icon(

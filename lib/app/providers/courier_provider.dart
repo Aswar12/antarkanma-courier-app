@@ -83,4 +83,24 @@ class CourierProvider extends GetConnect {
   Future<Response> getDailyStatistics() {
     return get('/courier/statistics/daily');
   }
+
+  // ── Update Courier Status (Online/Offline) ─────────────────────────────────
+  /// Update courier online/offline status
+  Future<Response> updateCourierStatus(int courierId, {bool? isActive}) {
+    return put('/couriers/$courierId', {
+      if (isActive != null) 'is_active': isActive,
+    });
+  }
+
+  /// Get courier profile
+  Future<Response> getCourierProfile() {
+    return get('/courier/profile');
+  }
+
+  /// Withdraw courier earnings
+  Future<Response> withdrawEarnings(double amount) {
+    return post('/courier/wallet/withdraw', {
+      'amount': amount,
+    });
+  }
 }

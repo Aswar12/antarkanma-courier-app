@@ -30,6 +30,7 @@ class AuthService extends GetxService {
   String? get userName => currentUser.value?.name;
   String? get userPhone => currentUser.value?.phoneNumber;
   String? get userEmail => currentUser.value?.email;
+  int? get courierId => currentUser.value?.courierId;
 
   // Token management
   String? getToken() => _storageService?.getToken();
@@ -238,8 +239,24 @@ class AuthService extends GetxService {
 
           debugPrint('Parsed user data: $userData');
           debugPrint('Parsed token: $token');
+          
+          // Debug: Check if courier data is present
+          if (userData is Map<String, dynamic>) {
+            if (userData.containsKey('courier')) {
+              debugPrint('✅ COURIER DATA FOUND in login response: ${userData['courier']}');
+              final courierData = userData['courier'];
+              if (courierData is Map<String, dynamic> && courierData.containsKey('id')) {
+                debugPrint('✅ Courier ID: ${courierData['id']}');
+              }
+            } else {
+              debugPrint('❌ NO COURIER DATA in login response');
+              debugPrint('Available user fields: ${userData.keys.toList()}');
+            }
+          }
 
           final user = UserModel.fromJson(userData);
+          
+          debugPrint('UserModel created - ID: ${user.id}, Name: ${user.name}, Courier ID: ${user.courierId}');
 
           // Check if user role is COURIER
           if (!user.isCourier) {
@@ -276,9 +293,26 @@ class AuthService extends GetxService {
       }
 
       if (response.statusCode != 200) {
+        // Handle error response from backend
+        String errorMessage = 'Terjadi kesalahan';
+        
+        if (response.statusCode == 401) {
+          errorMessage = 'Email/No. telepon atau password salah';
+        } else if (response.data != null) {
+          // Try to get error message from response
+          if (response.data is Map) {
+            errorMessage = response.data['message'] ?? 
+                          response.data['meta']?['message']?.toString() ??
+                          response.data['data']?.toString() ??
+                          'Terjadi kesalahan';
+          } else if (response.data is String) {
+            errorMessage = response.data;
+          }
+        }
+        
         showCustomSnackbar(
             title: 'Login Gagal',
-            message: response.data?['message'] ?? 'Terjadi kesalahan',
+            message: errorMessage,
             isError: true);
         return false;
       }
