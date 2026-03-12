@@ -1,0 +1,13 @@
+﻿Analyzing courier...                                            
+
+   info - The member 'refresh' overrides an inherited member but isn't annotated with '@override' - lib\app\controllers\courier_order_controller.dart:132:16 - annotate_overrides
+   info - The member 'refresh' overrides an inherited member but isn't annotated with '@override' - lib\app\controllers\wallet_controller.dart:504:16 - annotate_overrides
+   info - The constant name 'ROLE_USER' isn't a lowerCamelCase identifier - lib\app\data\models\user_model.dart:16:23 - constant_identifier_names
+   info - The constant name 'ROLE_COURIER' isn't a lowerCamelCase identifier - lib\app\data\models\user_model.dart:17:23 - constant_identifier_names
+   info - Unnecessary override - lib\app\modules\chat\controllers\chat_list_controller.dart:23:8 - unnecessary_overrides
+   info - Parameter 'key' could be a super parameter - lib\app\modules\chat\views\chat_list_page.dart:8:9 - use_super_parameters
+   info - Parameter 'key' could be a super parameter - lib\app\modules\chat\views\widgets\chat_list_tile.dart:11:9 - use_super_parameters
+   info - The imported package 'http' isn't a dependency of the importing package - lib\app\providers\wallet_provider.dart:7:8 - depend_on_referenced_packages
+   info - The imported package 'path' isn't a dependency of the importing package - lib\app\providers\wallet_provider.dart:9:8 - depend_on_referenced_packages
+   info - The constant name 'INITIAL' isn't a lowerCamelCase identifier - lib\app\routes\app_pages.dart:21:16 - constant_identifier_names
+

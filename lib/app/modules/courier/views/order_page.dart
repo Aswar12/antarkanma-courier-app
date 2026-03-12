@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:get/get.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../../../../theme.dart';
 import '../../../controllers/main_controller.dart';
 import '../../../controllers/courier_order_controller.dart';
@@ -223,19 +224,42 @@ class OrderPage extends GetView<MainController> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Icon(Icons.receipt_long,
-                          size: 16, color: secondaryTextColor),
-                      SizedBox(width: Dimensions.width8),
-                      Text(
-                        '#${transaction.id}',
-                        style: primaryTextStyle.copyWith(
-                          fontSize: Dimensions.font14,
-                          fontWeight: bold,
+                  InkWell(
+                    onTap: () {
+                      // Copy order ID to clipboard
+                      Clipboard.setData(ClipboardData(text: transaction.id.toString()));
+                      Get.snackbar(
+                        'Berhasil',
+                        'Order ID #${transaction.id} disalin!',
+                        snackPosition: SnackPosition.BOTTOM,
+                        backgroundColor: primaryColor,
+                        colorText: Colors.white,
+                        duration: const Duration(seconds: 2),
+                        margin: const EdgeInsets.all(16),
+                        borderRadius: 8,
+                      );
+                    },
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.receipt_long,
+                            size: 16, color: secondaryTextColor),
+                        SizedBox(width: Dimensions.width8),
+                        Text(
+                          '#${transaction.id}',
+                          style: primaryTextStyle.copyWith(
+                            fontSize: Dimensions.font14,
+                            fontWeight: bold,
+                          ),
                         ),
-                      ),
-                    ],
+                        SizedBox(width: Dimensions.width4),
+                        Icon(
+                          Icons.copy,
+                          size: 14,
+                          color: secondaryTextColor.withOpacity(0.6),
+                        ),
+                      ],
+                    ),
                   ),
                   _buildCourierStatusBadge(transaction.courierStatus),
                 ],
@@ -319,6 +343,23 @@ class OrderPage extends GetView<MainController> {
                                         overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
+                                    IconButton(
+                                      onPressed: () => _launchGoogleMaps(
+                                        transaction.userLocation!.latitude,
+                                        transaction.userLocation!.longitude,
+                                      ),
+                                      icon: Icon(
+                                        Icons.directions,
+                                        size: 16,
+                                        color: primaryColor,
+                                      ),
+                                      tooltip: 'Navigasi ke Lokasi Customer',
+                                      padding: EdgeInsets.zero,
+                                      constraints: BoxConstraints(
+                                        minWidth: 32,
+                                        minHeight: 32,
+                                      ),
+                                    ),
                                   ],
                                 ),
                             ],
@@ -371,13 +412,51 @@ class OrderPage extends GetView<MainController> {
                               Icon(Icons.storefront,
                                   size: 16, color: secondaryTextColor),
                               SizedBox(width: Dimensions.width8),
-                              Text(
-                                'Detail Pick-up (${transaction.orders.length} Merchant)',
-                                style: secondaryTextStyle.copyWith(
-                                  fontSize: Dimensions.font12,
-                                  fontWeight: semiBold,
+                              Expanded(
+                                child: Text(
+                                  'Detail Pick-up (${transaction.orders.length} Merchant)',
+                                  style: secondaryTextStyle.copyWith(
+                                    fontSize: Dimensions.font12,
+                                    fontWeight: semiBold,
+                                  ),
                                 ),
                               ),
+                              // Navigation button to first merchant
+                              if (transaction.orders.isNotEmpty &&
+                                  transaction.orders.first.orderItems.isNotEmpty)
+                                IconButton(
+                                  onPressed: () {
+                                    final merchant =
+                                        transaction.orders.first.orderItems.first
+                                            .merchant;
+                                    if (merchant.latitude != null &&
+                                        merchant.longitude != null) {
+                                      _launchGoogleMaps(
+                                        merchant.latitude!,
+                                        merchant.longitude!,
+                                      );
+                                    } else {
+                                      Get.snackbar(
+                                        'Error',
+                                        'Lokasi merchant tidak tersedia',
+                                        snackPosition: SnackPosition.BOTTOM,
+                                        backgroundColor: Colors.red,
+                                        colorText: Colors.white,
+                                      );
+                                    }
+                                  },
+                                  icon: Icon(
+                                    Icons.directions,
+                                    size: 16,
+                                    color: primaryColor,
+                                  ),
+                                  tooltip: 'Navigasi ke Merchant',
+                                  padding: EdgeInsets.zero,
+                                  constraints: BoxConstraints(
+                                    minWidth: 32,
+                                    minHeight: 32,
+                                  ),
+                                ),
                             ],
                           ),
                           SizedBox(height: Dimensions.height12),
@@ -409,6 +488,63 @@ class OrderPage extends GetView<MainController> {
                         ),
                       ),
                     ],
+                  ),
+                  
+                  // ── Penghasilan Courier ───────────────────────────────────────
+                  SizedBox(height: Dimensions.height16),
+                  Container(
+                    padding: EdgeInsets.all(Dimensions.width12),
+                    decoration: BoxDecoration(
+                      color: primaryColor.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(Dimensions.radius12),
+                      border: Border.all(
+                        color: primaryColor.withValues(alpha: 0.2),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(
+                              Icons.wallet,
+                              size: 18,
+                              color: primaryColor,
+                            ),
+                            SizedBox(width: Dimensions.width8),
+                            Text(
+                              'Rincian Penghasilan',
+                              style: primaryTextStyle.copyWith(
+                                fontSize: Dimensions.font14,
+                                fontWeight: bold,
+                                color: primaryColor,
+                              ),
+                            ),
+                          ],
+                        ),
+                        SizedBox(height: Dimensions.height12),
+                        _buildEarningRow(
+                          'Base Ongkir',
+                          transaction.formattedShippingPrice,
+                          isBold: false,
+                        ),
+                        SizedBox(height: Dimensions.height4),
+                        _buildEarningRow(
+                          'Platform Fee (10%)',
+                          '- ${transaction.formattedPlatformFee}',
+                          isBold: false,
+                          isNegative: true,
+                        ),
+                        Divider(height: Dimensions.height20, color: Colors.grey.shade300),
+                        _buildEarningRow(
+                          'Penghasilan Anda',
+                          transaction.formattedCourierEarning,
+                          isBold: true,
+                          isPrimary: true,
+                        ),
+                      ],
+                    ),
                   ),
 
                   // ── Tombol Aksi Utama (berdasarkan courier_status) ───────────
@@ -684,6 +820,41 @@ class OrderPage extends GetView<MainController> {
     );
   }
 
+  /// Row untuk rincian penghasilan courier
+  Widget _buildEarningRow(
+    String label,
+    String amount, {
+    bool isBold = false,
+    bool isNegative = false,
+    bool isPrimary = false,
+  }) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontSize: 13,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: isNegative ? Colors.red.shade600 : null,
+          ),
+        ),
+        Text(
+          amount,
+          style: TextStyle(
+            fontSize: isBold ? 15 : 13,
+            fontWeight: isBold ? FontWeight.bold : FontWeight.normal,
+            color: isPrimary
+                ? primaryColor
+                : isNegative
+                    ? Colors.red.shade600
+                    : null,
+          ),
+        ),
+      ],
+    );
+  }
+
   Color _getStatusColorForHeader(String? courierStatus) {
     return switch (courierStatus) {
       'HEADING_TO_MERCHANT' => Colors.orange,
@@ -693,6 +864,38 @@ class OrderPage extends GetView<MainController> {
       'DELIVERED' => Colors.green,
       _ => Colors.grey,
     };
+  }
+
+  /// Launch Google Maps with the given coordinates
+  Future<void> _launchGoogleMaps(double latitude, double longitude) async {
+    // Google Maps URL with latitude and longitude
+    final googleMapsUrl = 'https://www.google.com/maps/dir/?api=1&destination=$latitude,$longitude';
+    
+    try {
+      final uri = Uri.parse(googleMapsUrl);
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(
+          uri,
+          mode: LaunchMode.externalApplication, // Opens in Google Maps app
+        );
+      } else {
+        Get.snackbar(
+          'Error',
+          'Tidak dapat membuka Google Maps',
+          snackPosition: SnackPosition.BOTTOM,
+          backgroundColor: Colors.red,
+          colorText: Colors.white,
+        );
+      }
+    } catch (e) {
+      Get.snackbar(
+        'Error',
+        'Terjadi kesalahan saat membuka Google Maps',
+        snackPosition: SnackPosition.BOTTOM,
+        backgroundColor: Colors.red,
+        colorText: Colors.white,
+      );
+    }
   }
 
   Color _orderStatusColor(String status) {

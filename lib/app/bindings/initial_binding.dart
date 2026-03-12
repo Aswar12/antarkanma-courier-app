@@ -6,11 +6,11 @@ import '../services/auth_service.dart';
 class InitialBinding extends Bindings {
   @override
   void dependencies() {
-    // Core Services
+    // Core Services - permanent
     Get.put(StorageService(), permanent: true);
     Get.put(AuthService(), permanent: true);
 
-    // Core Controllers
+    // Core Controllers - permanent
     Get.put(AuthController(), permanent: true);
   }
 }

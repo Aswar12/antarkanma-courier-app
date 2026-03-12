@@ -517,7 +517,6 @@ class HomePage extends GetView<MainController> {
 
   Widget _buildOrderCard(TransactionModel trx) {
     // extract data safely
-    String merchantName = trx.baseMerchant?['name'] ?? 'Unknown Merchant';
     String dropoffAddr =
         trx.deliveryLocation?['address'] ?? 'Unknown Destination';
 
@@ -749,196 +748,278 @@ class HomePage extends GetView<MainController> {
 
   void _showWithdrawBottomSheet() {
     final TextEditingController amountController = TextEditingController();
+    final TextEditingController bankNameController = TextEditingController();
+    final TextEditingController bankAccountNameController =
+        TextEditingController();
+    final TextEditingController bankAccountNumberController =
+        TextEditingController();
     final currentBalance = controller.totalEarningsToday.value;
 
-    Get.bottomSheet(
-      Container(
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+    InputDecoration _inputDecoration(String hint, {String? prefixText}) {
+      return InputDecoration(
+        hintText: hint,
+        prefixText: prefixText,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
         ),
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Header
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Tarik Dana',
-                  style: primaryTextStyle.copyWith(
-                    fontSize: 18,
-                    fontWeight: semiBold,
-                  ),
-                ),
-                IconButton(
-                  icon: const Icon(Icons.close),
-                  onPressed: () => Get.back(),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Saldo Tersedia',
-              style: secondaryTextStyle.copyWith(
-                fontSize: 12,
-                color: chatTextSecondary,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              NumberFormat.currency(
-                      locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
-                  .format(currentBalance),
-              style: primaryTextStyle.copyWith(
-                fontSize: 24,
-                fontWeight: extraBold,
-                color: logoColor,
-              ),
-            ),
-            const SizedBox(height: 24),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: logoColor, width: 2),
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 12,
+        ),
+      );
+    }
 
-            // Input Amount
-            Text(
-              'Jumlah Penarikan',
-              style: primaryTextStyle.copyWith(
-                fontSize: 14,
-                fontWeight: semiBold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            TextField(
-              controller: amountController,
-              keyboardType: TextInputType.number,
-              decoration: InputDecoration(
-                hintText: 'Minimal Rp 10.000',
-                prefixText: 'Rp ',
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.grey.shade300),
-                ),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: logoColor, width: 2),
-                ),
-                contentPadding: const EdgeInsets.symmetric(
-                  horizontal: 16,
-                  vertical: 12,
-                ),
-              ),
-              onChanged: (value) {
-                // Auto-format to thousands
-                final numericValue = double.tryParse(value.replaceAll('.', ''));
-                if (numericValue != null) {
-                  final formatted = NumberFormat('#,###', 'id_ID')
-                      .format(numericValue.toInt());
-                  if (value != formatted) {
-                    amountController.value = TextEditingValue(
-                      text: formatted,
-                      selection:
-                          TextSelection.collapsed(offset: formatted.length),
-                    );
-                  }
-                }
-              },
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Minimum penarikan: Rp 10.000',
-              style: secondaryTextStyle.copyWith(
-                fontSize: 11,
-                color: Colors.orange.shade700,
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            // Submit Button
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () {
-                  final amountText = amountController.text.replaceAll('.', '');
-                  final amount = double.tryParse(amountText);
-
-                  if (amount == null || amount < 10000) {
-                    Get.snackbar(
-                      'Jumlah Tidak Valid',
-                      'Minimum penarikan adalah Rp 10.000',
-                      backgroundColor: Colors.orange,
-                      colorText: Colors.white,
-                      snackPosition: SnackPosition.TOP,
-                    );
-                    return;
-                  }
-
-                  if (amount > currentBalance) {
-                    Get.snackbar(
-                      'Saldo Tidak Mencukupi',
-                      'Jumlah penarikan melebihi saldo tersedia',
-                      backgroundColor: Colors.red,
-                      colorText: Colors.white,
-                      snackPosition: SnackPosition.TOP,
-                    );
-                    return;
-                  }
-
-                  Get.back(); // Close bottom sheet
-                  controller.withdrawEarnings(amount);
-                },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: logoColor,
-                  foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  elevation: 3,
-                ),
-                child: Text(
-                  'Tarik Sekarang',
-                  style: primaryTextStyle.copyWith(
-                    fontSize: 14,
-                    fontWeight: semiBold,
-                    color: Colors.white,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-
-            // Info Note
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.blue.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.blue.shade200),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
+    Get.bottomSheet(
+      SingleChildScrollView(
+        child: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Icon(Icons.info_outline,
-                      size: 16, color: Colors.blue.shade700),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Dana akan ditransfer ke rekening Anda dalam 1-3 hari kerja.',
-                      style: secondaryTextStyle.copyWith(
-                        fontSize: 11,
-                        color: Colors.blue.shade800,
-                      ),
+                  Text(
+                    'Tarik Dana',
+                    style: primaryTextStyle.copyWith(
+                      fontSize: 18,
+                      fontWeight: semiBold,
                     ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Get.back(),
                   ),
                 ],
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              Text(
+                'Saldo Tersedia',
+                style: secondaryTextStyle.copyWith(
+                  fontSize: 12,
+                  color: chatTextSecondary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                NumberFormat.currency(
+                        locale: 'id_ID', symbol: 'Rp ', decimalDigits: 0)
+                    .format(currentBalance),
+                style: primaryTextStyle.copyWith(
+                  fontSize: 24,
+                  fontWeight: extraBold,
+                  color: logoColor,
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // Input Amount
+              Text(
+                'Jumlah Penarikan',
+                style: primaryTextStyle.copyWith(
+                  fontSize: 14,
+                  fontWeight: semiBold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: amountController,
+                keyboardType: TextInputType.number,
+                decoration: _inputDecoration('Minimal Rp 10.000',
+                    prefixText: 'Rp '),
+                onChanged: (value) {
+                  final numericValue =
+                      double.tryParse(value.replaceAll('.', ''));
+                  if (numericValue != null) {
+                    final formatted = NumberFormat('#,###', 'id_ID')
+                        .format(numericValue.toInt());
+                    if (value != formatted) {
+                      amountController.value = TextEditingValue(
+                        text: formatted,
+                        selection:
+                            TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
+                  }
+                },
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Minimum penarikan: Rp 10.000',
+                style: secondaryTextStyle.copyWith(
+                  fontSize: 11,
+                  color: Colors.orange.shade700,
+                ),
+              ),
+              const SizedBox(height: 16),
+
+              // Bank Name
+              Text(
+                'Nama Bank',
+                style: primaryTextStyle.copyWith(
+                  fontSize: 14,
+                  fontWeight: semiBold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: bankNameController,
+                decoration: _inputDecoration('Contoh: BCA, BRI, Mandiri'),
+              ),
+              const SizedBox(height: 16),
+
+              // Bank Account Name
+              Text(
+                'Nama Pemilik Rekening',
+                style: primaryTextStyle.copyWith(
+                  fontSize: 14,
+                  fontWeight: semiBold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: bankAccountNameController,
+                decoration: _inputDecoration('Nama sesuai buku rekening'),
+              ),
+              const SizedBox(height: 16),
+
+              // Bank Account Number
+              Text(
+                'Nomor Rekening',
+                style: primaryTextStyle.copyWith(
+                  fontSize: 14,
+                  fontWeight: semiBold,
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: bankAccountNumberController,
+                keyboardType: TextInputType.number,
+                decoration: _inputDecoration('Nomor rekening tujuan'),
+              ),
+              const SizedBox(height: 24),
+
+              // Submit Button
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final amountText =
+                        amountController.text.replaceAll('.', '');
+                    final amount = double.tryParse(amountText);
+                    final bankName = bankNameController.text.trim();
+                    final bankAccountName =
+                        bankAccountNameController.text.trim();
+                    final bankAccountNumber =
+                        bankAccountNumberController.text.trim();
+
+                    if (amount == null || amount < 10000) {
+                      Get.snackbar(
+                        'Jumlah Tidak Valid',
+                        'Minimum penarikan adalah Rp 10.000',
+                        backgroundColor: Colors.orange,
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.TOP,
+                      );
+                      return;
+                    }
+
+                    if (amount > currentBalance) {
+                      Get.snackbar(
+                        'Saldo Tidak Mencukupi',
+                        'Jumlah penarikan melebihi saldo tersedia',
+                        backgroundColor: Colors.red,
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.TOP,
+                      );
+                      return;
+                    }
+
+                    if (bankName.isEmpty ||
+                        bankAccountName.isEmpty ||
+                        bankAccountNumber.isEmpty) {
+                      Get.snackbar(
+                        'Data Tidak Lengkap',
+                        'Harap lengkapi semua informasi rekening bank',
+                        backgroundColor: Colors.orange,
+                        colorText: Colors.white,
+                        snackPosition: SnackPosition.TOP,
+                      );
+                      return;
+                    }
+
+                    Get.back(); // Close bottom sheet
+                    controller.withdrawEarnings(
+                      amount: amount,
+                      bankName: bankName,
+                      bankAccountName: bankAccountName,
+                      bankAccountNumber: bankAccountNumber,
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: logoColor,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    elevation: 3,
+                  ),
+                  child: Text(
+                    'Tarik Sekarang',
+                    style: primaryTextStyle.copyWith(
+                      fontSize: 14,
+                      fontWeight: semiBold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Info Note
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.blue.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.blue.shade200),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.info_outline,
+                        size: 16, color: Colors.blue.shade700),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Dana akan ditransfer ke rekening Anda dalam 1-3 hari kerja.',
+                        style: secondaryTextStyle.copyWith(
+                          fontSize: 11,
+                          color: Colors.blue.shade800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
         ),
       ),
       isScrollControlled: true,

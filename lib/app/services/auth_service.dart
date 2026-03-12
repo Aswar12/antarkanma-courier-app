@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:antarkanma_courier/app/data/models/user_model.dart';
 import 'package:antarkanma_courier/app/providers/auth_provider.dart';
 import 'package:antarkanma_courier/app/services/storage_service.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart' hide FormData, MultipartFile, Response;
 import 'package:antarkanma_courier/app/routes/app_routes.dart';
@@ -132,47 +131,50 @@ class AuthService extends GetxService {
     }
   }
 
-  Future<void> _handleSuccessfulLogin(Response response) async {
-    try {
-      final data = response.data;
-      Map<String, dynamic> userData;
-      String? token;
+  /// Get user-friendly error message based on error type
+  String _getUserFriendlyErrorMessage(dynamic error) {
+    // Handle DioException for HTTP errors
+    if (error is DioException) {
+      // Check response status code
+      final statusCode = error.response?.statusCode;
 
-      if (data is Map<String, dynamic>) {
-        if (data.containsKey('data')) {
-          userData = data['data']['user'];
-          token = data['data']['access_token'];
-        } else if (data.containsKey('user')) {
-          userData = data['user'];
-          token = data['access_token'];
-        } else {
-          userData = data;
-          token = data['access_token'];
-        }
-      } else {
-        throw Exception('Invalid response data type');
+      if (statusCode == 401 || statusCode == 400) {
+        return 'Email/nomor telepon atau password yang Anda masukkan salah.';
+      } else if (statusCode == 403) {
+        return 'Akun Anda belum terverifikasi. Silakan hubungi admin.';
+      } else if (statusCode == 404) {
+        return 'Akun tidak ditemukan.';
+      } else if (statusCode == 500 || statusCode == 502 || statusCode == 503) {
+        return 'Server sedang mengalami gangguan. Silakan coba lagi nanti.';
       }
 
-      if (token == null) {
-        throw Exception('Missing token in response');
+      // Check DioException type
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+        case DioExceptionType.receiveTimeout:
+          return 'Koneksi ke server terlalu lama. Periksa internet Anda.';
+        case DioExceptionType.connectionError:
+          return 'Tidak dapat terhubung ke server. Periksa koneksi internet.';
+        case DioExceptionType.cancel:
+          return 'Permintaan dibatalkan.';
+        default:
+          return 'Terjadi kesalahan. Silakan coba lagi nanti.';
       }
-
-      await _storageService!.saveToken(token);
-      await _storageService!.saveUser(userData);
-      await _storageService!.saveRememberMe(true); // Enable auto-login
-      await _storageService!.saveCredentials(
-        userData['email'] ?? userData['phone_number'] ?? '',
-        '', // Don't save password for security
-      );
-
-      currentUser.value = UserModel.fromJson(userData);
-      isLoggedIn.value = true;
-
-      debugPrint('Login successful, data saved with auto-login enabled');
-    } catch (e) {
-      debugPrint('Error in _handleSuccessfulLogin: $e');
-      rethrow;
     }
+
+    // Handle SocketException (no internet)
+    if (error is SocketException) {
+      return 'Tidak ada koneksi internet. Periksa koneksi Anda.';
+    }
+
+    // Handle FormatException (parsing errors)
+    if (error is FormatException) {
+      return 'Format data tidak valid. Silakan coba lagi.';
+    }
+
+    // Default error message
+    return 'Terjadi kesalahan. Silakan coba lagi nanti.';
   }
 
   Future<bool> tryAutoLogin() async {
@@ -293,23 +295,12 @@ class AuthService extends GetxService {
       }
 
       if (response.statusCode != 200) {
-        // Handle error response from backend
-        String errorMessage = 'Terjadi kesalahan';
-        
-        if (response.statusCode == 401) {
-          errorMessage = 'Email/No. telepon atau password salah';
-        } else if (response.data != null) {
-          // Try to get error message from response
-          if (response.data is Map) {
-            errorMessage = response.data['message'] ?? 
-                          response.data['meta']?['message']?.toString() ??
-                          response.data['data']?.toString() ??
-                          'Terjadi kesalahan';
-          } else if (response.data is String) {
-            errorMessage = response.data;
-          }
-        }
-        
+        final errorMessage = _getUserFriendlyErrorMessage(
+          DioException(
+            requestOptions: RequestOptions(path: ''),
+            response: response,
+          ),
+        );
         showCustomSnackbar(
             title: 'Login Gagal',
             message: errorMessage,
@@ -319,9 +310,10 @@ class AuthService extends GetxService {
       return true;
     } catch (e) {
       debugPrint('Error during login: $e');
+      String errorMessage = _getUserFriendlyErrorMessage(e);
       showCustomSnackbar(
           title: 'Login Gagal',
-          message: 'Terjadi kesalahan saat login.',
+          message: errorMessage,
           isError: true);
       return false;
     }
@@ -382,15 +374,22 @@ class AuthService extends GetxService {
         return false;
       }
 
+      String errorMessage = _getUserFriendlyErrorMessage(
+        DioException(
+          requestOptions: RequestOptions(path: ''),
+          response: response,
+        ),
+      );
       showCustomSnackbar(
           title: 'Registrasi Gagal',
-          message: response.data['meta']['message'] ?? 'Registrasi gagal',
+          message: errorMessage,
           isError: true);
       return false;
     } catch (e) {
+      String errorMessage = _getUserFriendlyErrorMessage(e);
       showCustomSnackbar(
-          title: 'Error',
-          message: 'Gagal registrasi: ${e.toString()}',
+          title: 'Registrasi Gagal',
+          message: errorMessage,
           isError: true);
       return false;
     }

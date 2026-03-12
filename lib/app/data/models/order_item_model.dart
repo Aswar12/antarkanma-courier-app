@@ -346,12 +346,16 @@ class MerchantInfo {
   final String name;
   final String address;
   final String phoneNumber;
+  final double? latitude;
+  final double? longitude;
 
   MerchantInfo({
     required this.id,
     required this.name,
     required this.address,
     required this.phoneNumber,
+    this.latitude,
+    this.longitude,
   });
 
   factory MerchantInfo.fromJson(Map<String, dynamic> json) {
@@ -362,6 +366,8 @@ class MerchantInfo {
         address: json['address']?.toString() ?? '',
         phoneNumber:
             json['phone']?.toString() ?? json['phone_number']?.toString() ?? '',
+        latitude: _parseDouble(json['latitude']),
+        longitude: _parseDouble(json['longitude']),
       );
     } catch (e) {
       print('Error parsing MerchantInfo: $e');
@@ -377,12 +383,22 @@ class MerchantInfo {
     return null;
   }
 
+  static double? _parseDouble(dynamic value) {
+    if (value == null) return null;
+    if (value is double) return value;
+    if (value is int) return value.toDouble();
+    if (value is String) return double.tryParse(value);
+    return null;
+  }
+
   Map<String, dynamic> toJson() {
     return {
       'id': id,
       'name': name,
       'address': address,
       'phone_number': phoneNumber,
+      if (latitude != null) 'latitude': latitude,
+      if (longitude != null) 'longitude': longitude,
     };
   }
 }

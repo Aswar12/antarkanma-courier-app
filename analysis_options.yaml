@@ -11,6 +11,8 @@ analyzer:
   errors:
     unused_field: ignore
     deprecated_member_use: ignore
+    await_only_futures: ignore
+    avoid_print: ignore
 include: package:flutter_lints/flutter.yaml
 
 linter:

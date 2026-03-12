@@ -13,13 +13,16 @@ class ChatListPage extends StatefulWidget {
 
 class _ChatListPageState extends State<ChatListPage>
     with WidgetsBindingObserver {
-  final controller = Get.put(ChatListController());
+  final ChatListController controller = Get.find<ChatListController>();
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    controller.fetchChats(); // Immediate fetch on open
+    // Fetch chats on page load
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.fetchChats();
+    });
   }
 
   @override

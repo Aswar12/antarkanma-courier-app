@@ -98,9 +98,27 @@ class CourierProvider extends GetConnect {
   }
 
   /// Withdraw courier earnings
-  Future<Response> withdrawEarnings(double amount) {
-    return post('/courier/wallet/withdraw', {
+  Future<Response> withdrawEarnings({
+    required double amount,
+    required String bankAccountName,
+    required String bankAccountNumber,
+    required String bankName,
+  }) {
+    return post('/courier/wallet/withdrawals', {
       'amount': amount,
+      'bank_account_name': bankAccountName,
+      'bank_account_number': bankAccountNumber,
+      'bank_name': bankName,
     });
+  }
+
+  /// Get withdrawal history
+  Future<Response> getWithdrawalHistory() {
+    return get('/courier/wallet/withdrawals');
+  }
+
+  /// Get withdrawal detail
+  Future<Response> getWithdrawalDetail(int id) {
+    return get('/courier/wallet/withdrawals/$id');
   }
 }

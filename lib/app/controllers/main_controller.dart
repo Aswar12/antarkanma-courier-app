@@ -230,15 +230,29 @@ class MainController extends GetxController {
     }
   }
 
-  Future<void> withdrawEarnings(double amount) async {
+  Future<void> withdrawEarnings({
+    required double amount,
+    required String bankAccountName,
+    required String bankAccountNumber,
+    required String bankName,
+  }) async {
     try {
       Get.dialog(
         const Center(child: CircularProgressIndicator()),
         barrierDismissible: false,
       );
 
-      final response = await _courierProvider.withdrawEarnings(amount);
-      Get.back(); // Close dialog
+      final response = await _courierProvider.withdrawEarnings(
+        amount: amount,
+        bankAccountName: bankAccountName,
+        bankAccountNumber: bankAccountNumber,
+        bankName: bankName,
+      );
+
+      // Close dialog safely
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
 
       if (!response.status.hasError &&
           response.body != null &&
@@ -270,6 +284,7 @@ class MainController extends GetxController {
         );
       }
     } catch (e) {
+      // Close dialog safely
       if (Get.isDialogOpen ?? false) {
         Get.back();
       }
@@ -293,7 +308,11 @@ class MainController extends GetxController {
 
       final response =
           await _courierProvider.approveTransaction(transaction.id);
-      Get.back(); // close dialog
+      
+      // Close dialog safely
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
 
       if (!response.status.hasError &&
           response.body != null &&
@@ -317,7 +336,10 @@ class MainController extends GetxController {
         );
       }
     } catch (e) {
-      Get.back();
+      // Close dialog safely
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
       debugPrint('Error approving transaction: $e');
       Get.snackbar('Error', 'Gagal menghubungi server.',
           backgroundColor: Colors.red, colorText: Colors.white);
@@ -332,7 +354,11 @@ class MainController extends GetxController {
       );
 
       final response = await _courierProvider.rejectTransaction(transaction.id);
-      Get.back();
+      
+      // Close dialog safely
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
 
       if (!response.status.hasError &&
           response.body != null &&
@@ -355,7 +381,10 @@ class MainController extends GetxController {
         );
       }
     } catch (e) {
-      Get.back();
+      // Close dialog safely
+      if (Get.isDialogOpen ?? false) {
+        Get.back();
+      }
       debugPrint('Error rejecting transaction: $e');
       Get.snackbar('Error', 'Gagal menghubungi server.',
           backgroundColor: Colors.red, colorText: Colors.white);
@@ -364,11 +393,7 @@ class MainController extends GetxController {
 
   void changePage(int index) {
     currentIndex.value = index;
-    pageController.animateToPage(
-      index,
-      duration: const Duration(milliseconds: 300),
-      curve: Curves.easeInOut,
-    );
+    pageController.jumpToPage(index);
   }
 
   Future<void> logout() async {

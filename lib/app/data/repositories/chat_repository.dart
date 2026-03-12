@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -15,7 +17,7 @@ class ChatRepository {
 
   Future<List<ChatModel>?> getChatList() async {
     try {
-      final token = await _authService.getToken();
+      final token = _authService.getToken();
       if (token == null) {
         debugPrint('No auth token found');
         return null;
@@ -93,7 +95,7 @@ class ChatRepository {
   Future<Chat?> initiateChat(int orderId,
       {int? customerId, int? merchantId}) async {
     try {
-      final token = await _authService.getToken();
+      final token = _authService.getToken();
       if (token == null) return null;
 
       final Map<String, dynamic> body = {
@@ -134,7 +136,7 @@ class ChatRepository {
 
   Future<Chat?> initiateChatWithOrder(int orderId) async {
     try {
-      final token = await _authService.getToken();
+      final token = _authService.getToken();
       if (token == null) {
         debugPrint('initiateChatWithOrder: No auth token');
         return null;
@@ -302,7 +304,42 @@ class ChatRepository {
       final token = await _authService.getToken();
       if (token == null) return null;
 
-      // For now, only text messages
+      // Handle image upload via multipart
+      if (image != null) {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('$baseUrl/chat/$chatId/send'),
+        );
+        request.headers['Authorization'] = 'Bearer $token';
+        request.headers['Accept'] = 'application/json';
+
+        // Add image file
+        var imageFile = await http.MultipartFile.fromPath(
+          'attachment',
+          image.path,
+        );
+        request.files.add(imageFile);
+
+        // Add optional message
+        if (message != null && message.isNotEmpty) {
+          request.fields['message'] = message;
+        }
+
+        var streamedResponse = await request.send().timeout(
+              Duration(seconds: Config.connectTimeout),
+            );
+        var response = await http.Response.fromStream(streamedResponse);
+
+        if (response.statusCode == 200 || response.statusCode == 201) {
+          final data = json.decode(response.body);
+          if (data['success'] == true && data['data'] != null) {
+            return ChatMessage.fromJson(data['data']);
+          }
+        }
+        return null;
+      }
+
+      // Handle text message
       if (message != null) {
         final response = await http
             .post(
@@ -332,13 +369,26 @@ class ChatRepository {
     }
   }
 
-  Future<List<ChatMessage>?> getMessages(int chatId) async {
+  Future<PaginatedMessages?> getMessages(
+    int chatId, {
+    int page = 1,
+    int perPage = 50,
+  }) async {
     try {
       final token = await _authService.getToken();
       if (token == null) return null;
 
+      final uri = Uri.parse('$baseUrl/chat/$chatId/messages').replace(
+        queryParameters: {
+          'page': page.toString(),
+          'per_page': perPage.toString(),
+        },
+      );
+
+      debugPrint('getMessages: Fetching page $page with $perPage per page');
+
       final response = await http.get(
-        Uri.parse('$baseUrl/chat/$chatId/messages'),
+        uri,
         headers: {
           'Authorization': 'Bearer $token',
           'Accept': 'application/json',
@@ -351,12 +401,26 @@ class ChatRepository {
             data['data'] != null &&
             data['data']['messages'] != null) {
           final messagesList = data['data']['messages'] as List;
-          return messagesList.map((m) => ChatMessage.fromJson(m)).toList();
+          final messages =
+              messagesList.map((m) => ChatMessage.fromJson(m)).toList();
+
+          debugPrint(
+              'getMessages: Fetched ${messages.length} messages (page $page)');
+
+          return PaginatedMessages(
+            messages: messages,
+            currentPage: data['data']['current_page'] ?? 1,
+            lastPage: data['data']['last_page'] ?? 1,
+            total: data['data']['total'] ?? 0,
+            perPage: data['data']['per_page'] ?? perPage,
+            hasMorePages:
+                data['data']['current_page'] < data['data']['last_page'],
+          );
         }
       }
       return null;
     } catch (e) {
-      print('Error fetching messages: $e');
+      debugPrint('Error fetching messages: $e');
       return null;
     }
   }
@@ -448,9 +512,66 @@ class ChatRepository {
     }
   }
 
-  Future shareLocation(int i,
-      {required double latitude,
-      required double longitude,
-      required double locationAccuracy,
-      required String message}) async {}
+  Future<ChatMessage?> shareLocation(
+    int chatId, {
+    required double latitude,
+    required double longitude,
+    required double locationAccuracy,
+    required String message,
+  }) async {
+    try {
+      final token = await _authService.getToken();
+      if (token == null) {
+        debugPrint('shareLocation: No auth token');
+        return null;
+      }
+
+      debugPrint(
+          'shareLocation: Sharing location to chat $chatId - Lat: $latitude, Lng: $longitude');
+
+      final response = await http
+          .post(
+        Uri.parse('$baseUrl/chat/$chatId/share-location'),
+        headers: {
+          'Authorization': 'Bearer $token',
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        body: json.encode({
+          'latitude': latitude,
+          'longitude': longitude,
+          'location_accuracy': locationAccuracy,
+          'message': message,
+        }),
+      )
+          .timeout(
+        const Duration(seconds: 15),
+        onTimeout: () {
+          debugPrint('shareLocation: Request timeout after 15 seconds');
+          throw Exception('Request timeout - server tidak merespon');
+        },
+      );
+
+      debugPrint('shareLocation: Response status: ${response.statusCode}');
+      debugPrint('shareLocation: Response body: ${response.body}');
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        final data = json.decode(response.body);
+        if (data['success'] == true && data['data'] != null) {
+          debugPrint(
+              'shareLocation: SUCCESS - Location message sent: ${data['data']['id']}');
+          return ChatMessage.fromJson(data['data']);
+        } else {
+          debugPrint('shareLocation: Response not successful - $data');
+        }
+      } else {
+        debugPrint('shareLocation: Failed with status: ${response.statusCode}');
+        debugPrint('shareLocation: Error response: ${response.body}');
+      }
+      return null;
+    } catch (e) {
+      debugPrint('shareLocation: Exception caught: $e');
+      return null;
+    }
+  }
 }

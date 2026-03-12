@@ -7,8 +7,21 @@ import 'package:antarkanma_courier/app/modules/courier/views/order_page.dart';
 import 'package:antarkanma_courier/app/modules/chat/views/chat_list_page.dart';
 import 'package:antarkanma_courier/app/modules/courier/views/profile_page.dart';
 
-class MainPage extends StatelessWidget {
+class MainPage extends StatefulWidget {
   const MainPage({super.key});
+
+  @override
+  State<MainPage> createState() => _MainPageState();
+}
+
+class _MainPageState extends State<MainPage> {
+  @override
+  void initState() {
+    super.initState();
+    if (!Get.isRegistered<MainController>()) {
+      Get.put(MainController(), permanent: true);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -19,7 +32,9 @@ class MainPage extends StatelessWidget {
       body: PageView(
         physics: const NeverScrollableScrollPhysics(),
         controller: controller.pageController,
-        onPageChanged: controller.changePage,
+        onPageChanged: (index) {
+          controller.currentIndex.value = index;
+        },
         children: const [
           HomePage(),
           OrderPage(),
@@ -43,7 +58,11 @@ class MainPage extends StatelessWidget {
             backgroundColor: Colors.transparent,
             elevation: 0,
             currentIndex: controller.currentIndex.value,
-            onTap: controller.changePage,
+            onTap: (index) {
+              if (controller.currentIndex.value != index) {
+                controller.changePage(index);
+              }
+            },
             selectedItemColor: logoColor,
             unselectedItemColor: secondaryTextColor,
             type: BottomNavigationBarType.fixed,

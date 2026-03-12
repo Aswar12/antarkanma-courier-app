@@ -550,7 +550,6 @@ class TopupPage extends GetView<WalletController> {
                         'Accept': 'image/png, image/jpeg, */*',
                       },
                       placeholder: (context, url) {
-                        debugPrint('[TopupPage] Loading QRIS from: $url');
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -565,7 +564,6 @@ class TopupPage extends GetView<WalletController> {
                         );
                       },
                       errorWidget: (context, url, error) {
-                        debugPrint('[TopupPage] QRIS error: $error, URL: $url');
                         return Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [

@@ -287,6 +287,16 @@ class TransactionModel {
   String get formattedTotalPrice => 'Rp ${totalPrice.toStringAsFixed(0)}';
   String get formattedShippingPrice => 'Rp ${shippingPrice.toStringAsFixed(0)}';
   String get formattedDate => createdAt?.toString() ?? '-';
+  
+  // Service Fee Model - New fields for transparent fee calculation
+  double get baseShippingPrice => shippingPrice - 500; // Total ongkir - service fee
+  String get formattedBaseShippingPrice => 'Rp ${baseShippingPrice.toStringAsFixed(0)}';
+  
+  double get platformFee => baseShippingPrice * 0.10; // 10% dari base ongkir
+  String get formattedPlatformFee => 'Rp ${platformFee.toStringAsFixed(0)}';
+  
+  double get courierEarning => baseShippingPrice - platformFee; // Base - platform fee
+  String get formattedCourierEarning => 'Rp ${courierEarning.toStringAsFixed(0)}';
 
   String get statusDisplay {
     switch (status.toUpperCase()) {
